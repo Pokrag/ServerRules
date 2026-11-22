@@ -95,7 +95,7 @@ public final class RulesDisplay {
     }
 
     /** @return le texte MiniMessage de la sanction (montant en monnaie du serveur, duree lisible). */
-    private String sanctionText(CommandSender viewer, Sanction sanction) {
+    public String sanctionText(CommandSender viewer, Sanction sanction) {
         if (sanction.type() == SanctionType.FINE) {
             return lang.raw(viewer, "rules.sanction.fine",
                     "amount", plugin.getEconomy().format(sanction.amount()));

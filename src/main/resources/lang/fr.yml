@@ -28,6 +28,24 @@ rules:
     removed: "<red>[-] Règle {number}. {name}"
     none: "<gray>Aucun changement de règle depuis votre dernière visite."
     footer: "<gray>Tapez <white>{rules-command} <gray>pour voir toutes les règles."
+  admin:
+    usage:
+      add: "<gray>Utilisation : <white>{rules-command} add <nom> <fine|ban> <valeur> [description]"
+      edit: "<gray>Utilisation : <white>{rules-command} edit <n°> <nom> <fine|ban> <valeur> [description]"
+      remove: "<gray>Utilisation : <white>{rules-command} remove <n°>"
+      move: "<gray>Utilisation : <white>{rules-command} move <n°> <position>"
+    pending-header: "<gold>Modification en attente :"
+    pending-add: "<green>[+] Règle {number}. {name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+    pending-edit: "<yellow>[~] Règle {number}. {name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+    pending-remove: "<red>[-] Règle {number}. {name}"
+    pending-note: "<gray>Confirmez avec <click:run_command:'{confirm}'><green>[Confirmer]</click> <gray>ou annulez avec <click:run_command:'{cancel}'><red>[Annuler]</click> <gray>dans les {timeout} secondes."
+    confirmed: "<green>La modification a été appliquée."
+    cancelled: "<gray>La modification en attente a été annulée."
+    nothing-pending: "<red>Aucune modification en attente à confirmer."
+    pending-expired: "<red>Votre modification en attente a expiré. Recommencez."
+    moved: "<green>Règle déplacée : {number} -> {position}."
+    invalid-position: "<red>Position invalide : {position}."
+    reloaded: "<green>Configuration, langues et règles rechargées."
 
 complaint:
   usage: "<gray>Utilisation : <white>/plaint <joueur> <n° de règle> <détails>"

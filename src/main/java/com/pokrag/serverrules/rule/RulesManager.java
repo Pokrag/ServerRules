@@ -144,6 +144,56 @@ public final class RulesManager {
         return number >= 1 && number <= rules.size() ? rules.get(number - 1) : null;
     }
 
+    /** Ajoute une regle a la fin de la liste et renvoie sa nouvelle instance. */
+    public Rule create(String name, String description, Sanction sanction) {
+        Rule rule = new Rule(nextId(), name, description, sanction);
+        rules.add(rule);
+        return rule;
+    }
+
+    /**
+     * Remplace le contenu d'une regle en conservant son identifiant interne.
+     *
+     * @return la regle mise a jour, ou null si le numero n'existe pas.
+     */
+    public Rule replace(int number, String name, String description, Sanction sanction) {
+        Rule old = byNumber(number);
+        if (old == null) {
+            return null;
+        }
+        Rule updated = new Rule(old.id(), name, description, sanction);
+        rules.set(number - 1, updated);
+        return updated;
+    }
+
+    /**
+     * Supprime la regle au numero donne.
+     *
+     * @return la regle supprimee, ou null si le numero n'existe pas.
+     */
+    public Rule delete(int number) {
+        if (number < 1 || number > rules.size()) {
+            return null;
+        }
+        return rules.remove(number - 1);
+    }
+
+    /**
+     * Deplace une regle vers une nouvelle position (1 = premiere).
+     *
+     * @return true si le deplacement a ete applique.
+     */
+    public boolean move(int number, int position) {
+        if (number < 1 || number > rules.size() || position < 1 || position > rules.size()) {
+            return false;
+        }
+        if (number != position) {
+            Rule rule = rules.remove(number - 1);
+            rules.add(position - 1, rule);
+        }
+        return true;
+    }
+
     /** @return le prochain identifiant interne libre. */
     public int nextId() {
         int max = 0;

@@ -8,6 +8,7 @@ import com.pokrag.serverrules.display.ComplaintDisplay;
 import com.pokrag.serverrules.display.RulesDisplay;
 import com.pokrag.serverrules.lang.Lang;
 import com.pokrag.serverrules.listener.PlayerJoinListener;
+import com.pokrag.serverrules.rule.RulesAdminManager;
 import com.pokrag.serverrules.rule.RulesManager;
 import com.pokrag.serverrules.sanction.BanService;
 import com.pokrag.serverrules.sanction.FineService;
@@ -35,6 +36,7 @@ public final class ServerRulesPlugin extends JavaPlugin {
     private RulesDisplay display;
     private Database database;
     private ChangeTracker changeTracker;
+    private RulesAdminManager rulesAdminManager;
     private ComplaintDisplay complaintDisplay;
     private ComplaintManager complaintManager;
 
@@ -66,6 +68,8 @@ public final class ServerRulesPlugin extends JavaPlugin {
 
         this.changeTracker = new ChangeTracker(this, database, rulesManager, display);
         this.changeTracker.detectStartup();
+
+        this.rulesAdminManager = new RulesAdminManager(this);
 
         FineService fines = new FineService(this);
         BanService bans = new BanService(this);
@@ -141,6 +145,11 @@ public final class ServerRulesPlugin extends JavaPlugin {
     /** @return le suivi des changements de regles. */
     public ChangeTracker getChangeTracker() {
         return changeTracker;
+    }
+
+    /** @return le gestionnaire des modifications de regles (Phase 8). */
+    public RulesAdminManager getRulesAdminManager() {
+        return rulesAdminManager;
     }
 
     /** @return le gestionnaire des plaintes. */

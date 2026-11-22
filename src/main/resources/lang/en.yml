@@ -28,6 +28,24 @@ rules:
     removed: "<red>[-] Rule {number}. {name}"
     none: "<gray>No rule changes since your last visit."
     footer: "<gray>Type <white>{rules-command} <gray>to see all rules."
+  admin:
+    usage:
+      add: "<gray>Usage: <white>{rules-command} add <name> <fine|ban> <value> [description]"
+      edit: "<gray>Usage: <white>{rules-command} edit <rule> <name> <fine|ban> <value> [description]"
+      remove: "<gray>Usage: <white>{rules-command} remove <rule>"
+      move: "<gray>Usage: <white>{rules-command} move <rule> <position>"
+    pending-header: "<gold>Pending change:"
+    pending-add: "<green>[+] Rule {number}. {name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+    pending-edit: "<yellow>[~] Rule {number}. {name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+    pending-remove: "<red>[-] Rule {number}. {name}"
+    pending-note: "<gray>Confirm with <click:run_command:'{confirm}'><green>[Confirm]</click> <gray>or cancel with <click:run_command:'{cancel}'><red>[Cancel]</click> <gray>within {timeout} seconds."
+    confirmed: "<green>The change has been applied."
+    cancelled: "<gray>The pending change has been cancelled."
+    nothing-pending: "<red>There is no pending change to confirm."
+    pending-expired: "<red>Your pending change has expired. Please start again."
+    moved: "<green>Rule moved: {number} -> {position}."
+    invalid-position: "<red>Invalid position: {position}."
+    reloaded: "<green>Configuration, languages and rules reloaded."
 
 complaint:
   usage: "<gray>Usage: <white>/plaint <player> <rule number> <details>"
