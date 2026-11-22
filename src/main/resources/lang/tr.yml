@@ -1,6 +1,25 @@
-# ServerRules - Türkçe (otomatik çeviri, gözden geçirilmeli)
+# ServerRules - Türkçe
 prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+
 error:
-  vault-missing: "Vault yüklü değil. ServerRules, Vault gerektirir."
+  vault-missing: "Vault kurulu değil. ServerRules, Vault gerektirir."
   economy-missing: "Vault'a kayıtlı bir ekonomi sağlayıcısı yok. EssentialsX'i kurun ve ekonomisini etkinleştirin."
   economy-not-essentials: "Vault ekonomi sağlayıcısı EssentialsX değil (bulunan: {provider}). ServerRules, EssentialsX gerektirir."
+
+rules:
+  header: "<dark_gray>------- <green>Sunucu kuralları <dark_gray>-------"
+  footer: "<dark_gray>----------------------------"
+  row: "<yellow>{number}. <white>{name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+  empty: "<gray>Henüz hiçbir kural tanımlanmadı."
+  not-found: "<red>{number} numaralı kural yok."
+  single-header: "<dark_gray>------- <green>Kural {number} <dark_gray>-------"
+  sanction:
+    fine: "<red>Para cezası: {amount}"
+    temp-ban: "<red>Geçici ban: {duration}"
+  changes:
+    header: "<dark_gray>--- <green>Son ziyaretinizden beri kural değişiklikleri <dark_gray>---"
+    added: "<green>[+] Kural {number}. {name}"
+    modified: "<yellow>[~] Kural {number}. {name}"
+    removed: "<red>[-] Kural {number}. {name}"
+    none: "<gray>Son ziyaretinizden beri kural değişikliği yok."
+    footer: "<gray>Tüm kuralları görmek için <white>{rules-command} <gray>yazın."

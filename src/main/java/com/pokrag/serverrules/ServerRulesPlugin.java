@@ -1,23 +1,34 @@
 package com.pokrag.serverrules;
 
+import com.pokrag.serverrules.command.RulesCommand;
+import com.pokrag.serverrules.display.RulesDisplay;
 import com.pokrag.serverrules.lang.Lang;
+import com.pokrag.serverrules.listener.PlayerJoinListener;
+import com.pokrag.serverrules.rule.RulesManager;
+import com.pokrag.serverrules.storage.Database;
+import com.pokrag.serverrules.track.ChangeTracker;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.sql.SQLException;
+
 /**
  * Classe principale du plugin ServerRules.
  *
- * Phase 1 : base du projet.
- * - charge la configuration,
- * - charge les fichiers de langue,
- * - verifie au demarrage qu'EssentialsX est bien le fournisseur d'economie branche a Vault.
- *   Sinon : erreur claire dans la console et desactivation du plugin.
+ * - charge la configuration et les fichiers de langue,
+ * - verifie que Vault est present et qu'EssentialsX est bien le fournisseur
+ *   d'economie (sinon : erreur claire et desactivation),
+ * - charge les regles, ouvre la base SQLite et suit les changements.
  */
 public final class ServerRulesPlugin extends JavaPlugin {
 
-    private Economy economy;
     private Lang lang;
+    private Economy economy;
+    private RulesManager rulesManager;
+    private RulesDisplay display;
+    private Database database;
+    private ChangeTracker changeTracker;
 
     @Override
     public void onEnable() {
@@ -31,12 +42,35 @@ public final class ServerRulesPlugin extends JavaPlugin {
             return;
         }
 
+        this.rulesManager = new RulesManager(this);
+        this.rulesManager.load();
+
+        this.display = new RulesDisplay(this);
+
+        this.database = new Database(this);
+        try {
+            this.database.open();
+        } catch (SQLException e) {
+            getLogger().severe("Ouverture de la base SQLite impossible : " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        this.changeTracker = new ChangeTracker(this, database, rulesManager, display);
+        this.changeTracker.detectStartup();
+
+        new RulesCommand(this).register();
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
+
         getLogger().info("ServerRules active (Paper " + getServer().getMinecraftVersion()
-                + ", economie via " + economy.getName() + ").");
+                + ", economie via " + economy.getName() + ", " + rulesManager.rules().size() + " regle(s)).");
     }
 
     @Override
     public void onDisable() {
+        if (database != null) {
+            database.close();
+        }
         getLogger().info("ServerRules desactive.");
     }
 
@@ -68,17 +102,28 @@ public final class ServerRulesPlugin extends JavaPlugin {
         return true;
     }
 
-    /**
-     * @return le fournisseur d'economie Vault (jamais null une fois le plugin active).
-     */
+    /** @return le fournisseur d'economie Vault (jamais null une fois le plugin active). */
     public Economy getEconomy() {
         return economy;
     }
 
-    /**
-     * @return le gestionnaire de langues.
-     */
+    /** @return le gestionnaire de langues. */
     public Lang getLang() {
         return lang;
+    }
+
+    /** @return le gestionnaire des regles. */
+    public RulesManager getRulesManager() {
+        return rulesManager;
+    }
+
+    /** @return le rendu des messages de regles. */
+    public RulesDisplay getDisplay() {
+        return display;
+    }
+
+    /** @return le suivi des changements de regles. */
+    public ChangeTracker getChangeTracker() {
+        return changeTracker;
     }
 }

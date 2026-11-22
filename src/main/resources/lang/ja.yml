@@ -1,6 +1,25 @@
-# ServerRules - 日本語（自動翻訳、要確認）
+# ServerRules - 日本語
 prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+
 error:
   vault-missing: "Vault がインストールされていません。ServerRules には Vault が必要です。"
-  economy-missing: "Vault に経済プロバイダーが登録されていません。EssentialsX を導入し、その経済機能を有効にしてください。"
+  economy-missing: "Vault に登録された経済プロバイダーがありません。EssentialsX を導入し、その経済機能を有効にしてください。"
   economy-not-essentials: "Vault の経済プロバイダーが EssentialsX ではありません（検出: {provider}）。ServerRules には EssentialsX が必要です。"
+
+rules:
+  header: "<dark_gray>------- <green>サーバールール <dark_gray>-------"
+  footer: "<dark_gray>----------------------------"
+  row: "<yellow>{number}. <white>{name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+  empty: "<gray>まだルールが設定されていません。"
+  not-found: "<red>ルール {number} は存在しません。"
+  single-header: "<dark_gray>------- <green>ルール {number} <dark_gray>-------"
+  sanction:
+    fine: "<red>罰金：{amount}"
+    temp-ban: "<red>一時BAN：{duration}"
+  changes:
+    header: "<dark_gray>--- <green>前回の参加以降のルール変更 <dark_gray>---"
+    added: "<green>[+] ルール {number}. {name}"
+    modified: "<yellow>[~] ルール {number}. {name}"
+    removed: "<red>[-] ルール {number}. {name}"
+    none: "<gray>前回の参加以降、ルールの変更はありません。"
+    footer: "<gray>すべてのルールを見るには <white>{rules-command} <gray>と入力してください。"

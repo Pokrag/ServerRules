@@ -1,6 +1,25 @@
-# ServerRules - Français (traduction à relire)
+# ServerRules - Français
 prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+
 error:
   vault-missing: "Vault n'est pas installé. ServerRules nécessite Vault."
   economy-missing: "Aucun fournisseur d'économie n'est enregistré auprès de Vault. Installez EssentialsX et activez son économie."
   economy-not-essentials: "Le fournisseur d'économie Vault n'est pas EssentialsX (trouvé : {provider}). ServerRules nécessite EssentialsX."
+
+rules:
+  header: "<dark_gray>------- <green>Règles du serveur <dark_gray>-------"
+  footer: "<dark_gray>----------------------------"
+  row: "<yellow>{number}. <white>{name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+  empty: "<gray>Aucune règle n'a encore été définie."
+  not-found: "<red>La règle {number} n'existe pas."
+  single-header: "<dark_gray>------- <green>Règle {number} <dark_gray>-------"
+  sanction:
+    fine: "<red>Amende : {amount}"
+    temp-ban: "<red>Bannissement temporaire : {duration}"
+  changes:
+    header: "<dark_gray>--- <green>Changements de règles depuis votre dernière visite <dark_gray>---"
+    added: "<green>[+] Règle {number}. {name}"
+    modified: "<yellow>[~] Règle {number}. {name}"
+    removed: "<red>[-] Règle {number}. {name}"
+    none: "<gray>Aucun changement de règle depuis votre dernière visite."
+    footer: "<gray>Tapez <white>{rules-command} <gray>pour voir toutes les règles."

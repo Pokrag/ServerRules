@@ -1,6 +1,25 @@
-# ServerRules - Nederlands (automatische vertaling, te controleren)
+# ServerRules - Nederlands
 prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+
 error:
   vault-missing: "Vault is niet geïnstalleerd. ServerRules vereist Vault."
   economy-missing: "Er is geen economieprovider geregistreerd bij Vault. Installeer EssentialsX en schakel de economie in."
-  economy-not-essentials: "De Vault-economieprovider is niet EssentialsX (gevonden: {provider}). ServerRules vereist EssentialsX."
+  economy-not-essentials: "De economieprovider van Vault is niet EssentialsX (gevonden: {provider}). ServerRules vereist EssentialsX."
+
+rules:
+  header: "<dark_gray>------- <green>Serverregels <dark_gray>-------"
+  footer: "<dark_gray>----------------------------"
+  row: "<yellow>{number}. <white>{name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+  empty: "<gray>Er zijn nog geen regels ingesteld."
+  not-found: "<red>Regel {number} bestaat niet."
+  single-header: "<dark_gray>------- <green>Regel {number} <dark_gray>-------"
+  sanction:
+    fine: "<red>Boete: {amount}"
+    temp-ban: "<red>Tijdelijke ban: {duration}"
+  changes:
+    header: "<dark_gray>--- <green>Regelwijzigingen sinds je laatste bezoek <dark_gray>---"
+    added: "<green>[+] Regel {number}. {name}"
+    modified: "<yellow>[~] Regel {number}. {name}"
+    removed: "<red>[-] Regel {number}. {name}"
+    none: "<gray>Geen regelwijzigingen sinds je laatste bezoek."
+    footer: "<gray>Typ <white>{rules-command} <gray>om alle regels te zien."

@@ -1,6 +1,25 @@
-# ServerRules - Italiano (traduzione automatica, da rivedere)
+# ServerRules - Italiano
 prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+
 error:
   vault-missing: "Vault non è installato. ServerRules richiede Vault."
-  economy-missing: "Nessun provider economico è registrato su Vault. Installa EssentialsX e abilita la sua economia."
-  economy-not-essentials: "Il provider economico di Vault non è EssentialsX (trovato: {provider}). ServerRules richiede EssentialsX."
+  economy-missing: "Nessun fornitore di economia è registrato in Vault. Installa EssentialsX e attiva la sua economia."
+  economy-not-essentials: "Il fornitore di economia di Vault non è EssentialsX (trovato: {provider}). ServerRules richiede EssentialsX."
+
+rules:
+  header: "<dark_gray>------- <green>Regole del server <dark_gray>-------"
+  footer: "<dark_gray>----------------------------"
+  row: "<yellow>{number}. <white>{name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+  empty: "<gray>Non è ancora stata definita alcuna regola."
+  not-found: "<red>La regola {number} non esiste."
+  single-header: "<dark_gray>------- <green>Regola {number} <dark_gray>-------"
+  sanction:
+    fine: "<red>Multa: {amount}"
+    temp-ban: "<red>Ban temporaneo: {duration}"
+  changes:
+    header: "<dark_gray>--- <green>Modifiche alle regole dalla tua ultima visita <dark_gray>---"
+    added: "<green>[+] Regola {number}. {name}"
+    modified: "<yellow>[~] Regola {number}. {name}"
+    removed: "<red>[-] Regola {number}. {name}"
+    none: "<gray>Nessuna modifica alle regole dalla tua ultima visita."
+    footer: "<gray>Scrivi <white>{rules-command} <gray>per vedere tutte le regole."

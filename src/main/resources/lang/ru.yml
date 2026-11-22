@@ -1,6 +1,25 @@
-# ServerRules - Русский (автоперевод, требует проверки)
+# ServerRules - Русский
 prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+
 error:
-  vault-missing: "Vault не установлен. Для ServerRules требуется Vault."
+  vault-missing: "Vault не установлен. ServerRules требует Vault."
   economy-missing: "В Vault не зарегистрирован поставщик экономики. Установите EssentialsX и включите его экономику."
-  economy-not-essentials: "Поставщик экономики Vault — не EssentialsX (найдено: {provider}). Для ServerRules требуется EssentialsX."
+  economy-not-essentials: "Поставщик экономики Vault — не EssentialsX (найден: {provider}). ServerRules требует EssentialsX."
+
+rules:
+  header: "<dark_gray>------- <green>Правила сервера <dark_gray>-------"
+  footer: "<dark_gray>----------------------------"
+  row: "<yellow>{number}. <white>{name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+  empty: "<gray>Правила ещё не заданы."
+  not-found: "<red>Правило {number} не существует."
+  single-header: "<dark_gray>------- <green>Правило {number} <dark_gray>-------"
+  sanction:
+    fine: "<red>Штраф: {amount}"
+    temp-ban: "<red>Временный бан: {duration}"
+  changes:
+    header: "<dark_gray>--- <green>Изменения правил с вашего последнего визита <dark_gray>---"
+    added: "<green>[+] Правило {number}. {name}"
+    modified: "<yellow>[~] Правило {number}. {name}"
+    removed: "<red>[-] Правило {number}. {name}"
+    none: "<gray>Нет изменений правил с вашего последнего визита."
+    footer: "<gray>Введите <white>{rules-command} <gray>, чтобы увидеть все правила."

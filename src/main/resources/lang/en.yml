@@ -1,6 +1,25 @@
 # ServerRules - English (reference language)
 prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+
 error:
   vault-missing: "Vault is not installed. ServerRules requires Vault."
   economy-missing: "No economy provider is registered with Vault. Install EssentialsX and enable its economy."
   economy-not-essentials: "The Vault economy provider is not EssentialsX (found: {provider}). ServerRules requires EssentialsX."
+
+rules:
+  header: "<dark_gray>------- <green>Server rules <dark_gray>-------"
+  footer: "<dark_gray>----------------------------"
+  row: "<yellow>{number}. <white>{name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+  empty: "<gray>No rules have been defined yet."
+  not-found: "<red>Rule {number} does not exist."
+  single-header: "<dark_gray>------- <green>Rule {number} <dark_gray>-------"
+  sanction:
+    fine: "<red>Fine: {amount}"
+    temp-ban: "<red>Temporary ban: {duration}"
+  changes:
+    header: "<dark_gray>--- <green>Rule changes since your last visit <dark_gray>---"
+    added: "<green>[+] Rule {number}. {name}"
+    modified: "<yellow>[~] Rule {number}. {name}"
+    removed: "<red>[-] Rule {number}. {name}"
+    none: "<gray>No rule changes since your last visit."
+    footer: "<gray>Type <white>{rules-command} <gray>to see all rules."

@@ -1,6 +1,25 @@
-# ServerRules - 한국어 (자동 번역, 검토 필요)
+# ServerRules - 한국어
 prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+
 error:
   vault-missing: "Vault가 설치되어 있지 않습니다. ServerRules에는 Vault가 필요합니다."
   economy-missing: "Vault에 등록된 경제 제공자가 없습니다. EssentialsX를 설치하고 경제 기능을 활성화하세요."
   economy-not-essentials: "Vault 경제 제공자가 EssentialsX가 아닙니다(발견: {provider}). ServerRules에는 EssentialsX가 필요합니다."
+
+rules:
+  header: "<dark_gray>------- <green>서버 규칙 <dark_gray>-------"
+  footer: "<dark_gray>----------------------------"
+  row: "<yellow>{number}. <white>{name} <dark_gray>| <gray>{description} <dark_gray>| {sanction}"
+  empty: "<gray>아직 규칙이 정의되지 않았습니다."
+  not-found: "<red>규칙 {number}이(가) 존재하지 않습니다."
+  single-header: "<dark_gray>------- <green>규칙 {number} <dark_gray>-------"
+  sanction:
+    fine: "<red>벌금: {amount}"
+    temp-ban: "<red>임시 밴: {duration}"
+  changes:
+    header: "<dark_gray>--- <green>지난 방문 이후 규칙 변경 <dark_gray>---"
+    added: "<green>[+] 규칙 {number}. {name}"
+    modified: "<yellow>[~] 규칙 {number}. {name}"
+    removed: "<red>[-] 규칙 {number}. {name}"
+    none: "<gray>지난 방문 이후 규칙 변경이 없습니다."
+    footer: "<gray>모든 규칙을 보려면 <white>{rules-command} <gray>를 입력하세요."
