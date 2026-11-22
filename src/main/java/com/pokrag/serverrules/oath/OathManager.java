@@ -145,12 +145,24 @@ public final class OathManager {
 
     /** Traite la saisie d'un code : valide le code, puis propose Accepter / Refuser. */
     public void join(Player player, String rawCode) {
+        Oath found = requestJoin(player, rawCode);
+        if (found != null) {
+            display.joinRecap(player, found, membersOf(found.id()));
+        }
+    }
+
+    /**
+     * Valide un code et memorise l'adhesion en attente, sans envoyer de message de recapitulatif.
+     *
+     * @return le serment a rejoindre, ou null si le code est invalide (un message a deja ete envoye).
+     */
+    public Oath requestJoin(Player player, String rawCode) {
         long now = System.currentTimeMillis();
         Attempts attempts = failedAttempts.get(player.getUniqueId());
         if (attempts != null && now < attempts.lockoutUntil()) {
             player.sendMessage(plugin.getLang().prefixed(player, "oath.join.lockout",
                     "time", TimeUtil.format(Duration.ofMillis(attempts.lockoutUntil() - now))));
-            return;
+            return null;
         }
 
         String code = rawCode == null ? "" : rawCode.trim().toUpperCase(Locale.ROOT);
@@ -168,20 +180,36 @@ public final class OathManager {
         if (!joinable) {
             registerFailure(player);
             player.sendMessage(plugin.getLang().prefixed(player, "oath.join.invalid"));
-            return;
+            return null;
         }
         if (isParty(found.id(), player.getUniqueId())) {
             player.sendMessage(plugin.getLang().prefixed(player, "oath.join.already-member"));
-            return;
+            return null;
         }
         if (membersOf(found.id()).size() >= maxPlayers()) {
             player.sendMessage(plugin.getLang().prefixed(player, "oath.join.full"));
-            return;
+            return null;
         }
 
         failedAttempts.remove(player.getUniqueId());
         pendingJoin.put(player.getUniqueId(), found.id());
-        display.joinRecap(player, found, membersOf(found.id()));
+        return found;
+    }
+
+    /** @return l'identifiant du serment dont l'adhesion est en attente pour ce joueur, s'il existe. */
+    public java.util.OptionalLong pendingJoin(UUID uuid) {
+        Long id = pendingJoin.get(uuid);
+        return id == null ? java.util.OptionalLong.empty() : java.util.OptionalLong.of(id);
+    }
+
+    /**
+     * @return true si une autre partie a demande l'annulation de ce serment et que le joueur
+     *         peut donc la confirmer (demande encore valide).
+     */
+    public boolean hasOtherCancelRequest(long oathId, UUID player) {
+        CancelRequest request = cancelRequests.get(oathId);
+        return request != null && System.currentTimeMillis() <= request.expiresAt()
+                && !request.requester().equals(player);
     }
 
     /** Accepte l'adhesion en attente et lie le joueur. Active le serment si besoin. */

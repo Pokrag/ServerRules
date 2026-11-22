@@ -8,6 +8,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.pokrag.serverrules.ServerRulesPlugin;
 import com.pokrag.serverrules.complaint.Citation;
+import com.pokrag.serverrules.gui.PlayerComplaintsGui;
 import com.pokrag.serverrules.oath.Oath;
 import com.pokrag.serverrules.oath.OathManager;
 import com.pokrag.serverrules.rule.Rule;
@@ -49,9 +50,12 @@ public final class PlaintCommand {
                     .<CommandSourceStack>literal(name)
                     .requires(source -> source.getSender().hasPermission("serverrules.complaint"))
                     .executes(context -> {
-                        // Phase 11 : ouvrira la GUI des plaintes du joueur.
                         CommandSender sender = context.getSource().getSender();
-                        sender.sendMessage(plugin.getLang().prefixed(sender, "complaint.usage"));
+                        if (sender instanceof Player player) {
+                            PlayerComplaintsGui.open(plugin, player);
+                        } else {
+                            sender.sendMessage(plugin.getLang().prefixed(sender, "gui.players-only"));
+                        }
                         return Command.SINGLE_SUCCESS;
                     })
                     .then(Commands.argument("player", StringArgumentType.word())

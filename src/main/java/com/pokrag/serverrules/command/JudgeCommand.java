@@ -9,10 +9,12 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.pokrag.serverrules.ServerRulesPlugin;
 import com.pokrag.serverrules.complaint.ComplaintManager;
 import com.pokrag.serverrules.complaint.ComplaintStatus;
+import com.pokrag.serverrules.gui.ComplaintsGui;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Locale;
@@ -44,7 +46,7 @@ public final class JudgeCommand {
             LiteralCommandNode<CommandSourceStack> node = LiteralArgumentBuilder
                     .<CommandSourceStack>literal(name)
                     .requires(source -> ComplaintManager.isJudge(source.getSender()))
-                    .executes(context -> list(context, ComplaintStatus.EN_ATTENTE))
+                    .executes(this::openGui)
                     .then(LiteralArgumentBuilder.<CommandSourceStack>literal("list")
                             .executes(context -> list(context, null))
                             .then(Commands.argument("status", StringArgumentType.word())
@@ -105,6 +107,16 @@ public final class JudgeCommand {
 
             event.registrar().register(node, aliases);
         });
+    }
+
+    private int openGui(CommandContext<CommandSourceStack> context) {
+        CommandSender sender = context.getSource().getSender();
+        if (sender instanceof Player player) {
+            ComplaintsGui.open(plugin, player);
+        } else {
+            sender.sendMessage(plugin.getLang().prefixed(sender, "gui.players-only"));
+        }
+        return Command.SINGLE_SUCCESS;
     }
 
     private int list(CommandContext<CommandSourceStack> context, ComplaintStatus status) {

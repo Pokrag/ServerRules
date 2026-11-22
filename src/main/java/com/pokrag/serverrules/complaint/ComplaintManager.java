@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -137,6 +138,34 @@ public final class ComplaintManager {
     /** Affiche le detail d'une plainte. */
     public void view(CommandSender viewer, long id) {
         withComplaint(viewer, id, complaint -> display.detail(viewer, complaint));
+    }
+
+    /**
+     * Charge les plaintes filtrees par statut et rappelle sur le thread principal.
+     * Utilise par les menus d'inventaire (Phase 11), sans verifier le conflit d'interets.
+     */
+    public void loadComplaints(ComplaintStatus status, Consumer<List<Complaint>> callback) {
+        database.listComplaints(status)
+                .thenAccept(list -> Sync.run(plugin, () -> callback.accept(list)))
+                .exceptionally(error -> {
+                    plugin.getLogger().warning("Lecture des plaintes impossible : " + error.getMessage());
+                    return null;
+                });
+    }
+
+    /** Charge une plainte et rappelle sur le thread principal (menus d'inventaire, Phase 11). */
+    public void loadComplaint(long id, Consumer<Optional<Complaint>> callback) {
+        database.findComplaint(id)
+                .thenAccept(found -> Sync.run(plugin, () -> callback.accept(found)))
+                .exceptionally(error -> {
+                    plugin.getLogger().warning("Lecture de la plainte impossible : " + error.getMessage());
+                    return null;
+                });
+    }
+
+    /** @return la fourchette de modulation (pourcentages) autorisee pour un destinataire. */
+    public double[] modulationRange(CommandSender sender) {
+        return percentRange(sender);
     }
 
     // -------------------------------------------------------------- traitement

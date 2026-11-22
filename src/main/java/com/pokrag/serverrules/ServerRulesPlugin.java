@@ -7,6 +7,8 @@ import com.pokrag.serverrules.command.RulesCommand;
 import com.pokrag.serverrules.complaint.ComplaintManager;
 import com.pokrag.serverrules.display.ComplaintDisplay;
 import com.pokrag.serverrules.display.RulesDisplay;
+import com.pokrag.serverrules.gui.ChatInput;
+import com.pokrag.serverrules.gui.MenuListener;
 import com.pokrag.serverrules.lang.Lang;
 import com.pokrag.serverrules.listener.PlayerJoinListener;
 import com.pokrag.serverrules.oath.OathManager;
@@ -42,6 +44,7 @@ public final class ServerRulesPlugin extends JavaPlugin {
     private ComplaintDisplay complaintDisplay;
     private ComplaintManager complaintManager;
     private OathManager oathManager;
+    private ChatInput chatInput;
 
     @Override
     public void onEnable() {
@@ -90,6 +93,13 @@ public final class ServerRulesPlugin extends JavaPlugin {
         new OathCommand(this).register();
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
 
+        // Menus d'inventaire (Phase 11) : clics annules et saisie de texte dans le chat.
+        this.chatInput = new ChatInput(this);
+        this.chatInput.register();
+        this.chatInput.startTicker();
+        getServer().getPluginManager().registerEvents(chatInput, this);
+        getServer().getPluginManager().registerEvents(new MenuListener(), this);
+
         getLogger().info("ServerRules active (Paper " + getServer().getMinecraftVersion()
                 + ", economie via " + economy.getName() + ", " + rulesManager.rules().size() + " regle(s)).");
     }
@@ -98,6 +108,9 @@ public final class ServerRulesPlugin extends JavaPlugin {
     public void onDisable() {
         if (oathManager != null) {
             oathManager.stopTicker();
+        }
+        if (chatInput != null) {
+            chatInput.stopTicker();
         }
         if (database != null) {
             database.close();
@@ -176,5 +189,10 @@ public final class ServerRulesPlugin extends JavaPlugin {
     /** @return le gestionnaire des serments (Phase 9). */
     public OathManager getOathManager() {
         return oathManager;
+    }
+
+    /** @return la saisie de texte dans le chat des menus (Phase 11). */
+    public ChatInput getChatInput() {
+        return chatInput;
     }
 }

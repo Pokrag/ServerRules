@@ -37,6 +37,9 @@ public final class ChangeTracker {
 
     private volatile CompletableFuture<Void> ready = CompletableFuture.completedFuture(null);
 
+    /** Derniere version de regles vue dans la GUI des regles, par joueur (Phase 11). */
+    private final Map<UUID, Long> guiVisits = new java.util.concurrent.ConcurrentHashMap<>();
+
     public ChangeTracker(ServerRulesPlugin plugin, Database database, RulesManager rules, RulesDisplay display) {
         this.plugin = plugin;
         this.database = database;
@@ -123,6 +126,35 @@ public final class ChangeTracker {
                 .thenAccept(changes -> sync(() -> display.showChanges(viewer, changes)))
                 .exceptionally(error -> {
                     plugin.getLogger().warning("Lecture des nouveautes impossible : " + error.getMessage());
+                    return null;
+                });
+    }
+
+    /**
+     * Recupere les numeros des regles ajoutees ou modifiees depuis la derniere ouverture
+     * de la GUI des regles par ce joueur, puis met a jour cette visite (Phase 11).
+     */
+    public void changedRuleNumbers(Player player, java.util.function.Consumer<Set<Integer>> callback) {
+        UUID uuid = player.getUniqueId();
+        ready.thenCompose(ignored -> database.maxSeq())
+                .thenCompose(max -> {
+                    Long previous = guiVisits.put(uuid, max);
+                    if (previous == null || previous >= max) {
+                        return CompletableFuture.completedFuture(List.<RuleChange>of());
+                    }
+                    return database.changesAfter(previous);
+                })
+                .thenAccept(changes -> {
+                    Set<Integer> numbers = new HashSet<>();
+                    for (RuleChange change : changes) {
+                        if (change.type() != ChangeType.REMOVED) {
+                            numbers.add(change.ruleNumber());
+                        }
+                    }
+                    sync(() -> callback.accept(numbers));
+                })
+                .exceptionally(error -> {
+                    plugin.getLogger().warning("Lecture des changements pour la GUI impossible : " + error.getMessage());
                     return null;
                 });
     }

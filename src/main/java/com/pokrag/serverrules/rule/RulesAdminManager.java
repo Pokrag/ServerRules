@@ -118,7 +118,12 @@ public final class RulesAdminManager {
         sender.sendMessage(plugin.getLang().prefixed(sender, "rules.admin.reloaded"));
     }
 
-    private void apply(CommandSender sender, PendingRuleChange change) {
+    /**
+     * Applique immediatement une modification de regle (ajout, modification ou suppression).
+     * Utilise par la confirmation de la commande et par les menus d'inventaire (Phase 11) :
+     * l'auteur de l'action est responsable de la permission et de la confirmation.
+     */
+    public void apply(CommandSender sender, PendingRuleChange change) {
         RulesManager rules = plugin.getRulesManager();
         Database.Change recorded;
 

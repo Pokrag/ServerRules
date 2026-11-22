@@ -8,6 +8,8 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.pokrag.serverrules.ServerRulesPlugin;
+import com.pokrag.serverrules.gui.RulesGui;
+import com.pokrag.serverrules.gui.RulesManageGui;
 import com.pokrag.serverrules.rule.PendingRuleChange;
 import com.pokrag.serverrules.rule.Rule;
 import com.pokrag.serverrules.rule.Sanction;
@@ -17,6 +19,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.time.Duration;
 import java.util.List;
@@ -58,6 +61,12 @@ public final class RulesCommand {
                         plugin.getDisplay().showTable(context.getSource().getSender());
                         return Command.SINGLE_SUCCESS;
                     })
+                    .then(LiteralArgumentBuilder.<CommandSourceStack>literal("gui")
+                            .requires(permission("serverrules.judge"))
+                            .executes(context -> openRulesGui(context.getSource().getSender())))
+                    .then(LiteralArgumentBuilder.<CommandSourceStack>literal("manage")
+                            .requires(permission("serverrules.superjudge"))
+                            .executes(context -> openManageGui(context.getSource().getSender())))
                     .then(Commands.argument("number", IntegerArgumentType.integer(1))
                             .executes(this::showRule))
                     .then(LiteralArgumentBuilder.<CommandSourceStack>literal("new")
@@ -112,6 +121,26 @@ public final class RulesCommand {
 
             event.registrar().register(node, aliases);
         });
+    }
+
+    /** Ouvre la GUI des regles des juges (`/rules gui`). */
+    private int openRulesGui(CommandSender sender) {
+        if (sender instanceof Player player) {
+            RulesGui.open(plugin, player);
+        } else {
+            sender.sendMessage(plugin.getLang().prefixed(sender, "gui.players-only"));
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** Ouvre la GUI de gestion des regles (`/rules manage`). */
+    private int openManageGui(CommandSender sender) {
+        if (sender instanceof Player player) {
+            RulesManageGui.open(plugin, player);
+        } else {
+            sender.sendMessage(plugin.getLang().prefixed(sender, "gui.players-only"));
+        }
+        return Command.SINGLE_SUCCESS;
     }
 
     /** Affiche une regle precise (`/rules &lt;n&gt;`). */

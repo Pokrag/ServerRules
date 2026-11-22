@@ -8,6 +8,8 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.pokrag.serverrules.ServerRulesPlugin;
 import com.pokrag.serverrules.complaint.SanctionKind;
+import com.pokrag.serverrules.gui.OathCreateGui;
+import com.pokrag.serverrules.gui.OathGui;
 import com.pokrag.serverrules.oath.Oath;
 import com.pokrag.serverrules.util.TimeUtil;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -49,9 +51,9 @@ public final class OathCommand {
             LiteralCommandNode<CommandSourceStack> node = LiteralArgumentBuilder
                     .<CommandSourceStack>literal(name)
                     .requires(permission("serverrules.oath"))
-                    .executes(usage(null))
+                    .executes(this::openGui)
                     .then(LiteralArgumentBuilder.<CommandSourceStack>literal("create")
-                            .executes(usage("create"))
+                            .executes(this::openCreate)
                             .then(Commands.argument("duration", StringArgumentType.word())
                                     .then(Commands.literal("fine")
                                             .then(Commands.argument("amount", StringArgumentType.word())
@@ -85,6 +87,26 @@ public final class OathCommand {
 
             event.registrar().register(node, aliases);
         });
+    }
+
+    private int openGui(CommandContext<CommandSourceStack> context) {
+        CommandSender sender = context.getSource().getSender();
+        if (sender instanceof Player player) {
+            OathGui.open(plugin, player);
+        } else {
+            sender.sendMessage(plugin.getLang().prefixed(sender, "gui.players-only"));
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int openCreate(CommandContext<CommandSourceStack> context) {
+        CommandSender sender = context.getSource().getSender();
+        if (sender instanceof Player player) {
+            OathCreateGui.start(plugin, player);
+        } else {
+            sender.sendMessage(plugin.getLang().prefixed(sender, "gui.players-only"));
+        }
+        return Command.SINGLE_SUCCESS;
     }
 
     private int create(CommandContext<CommandSourceStack> context, SanctionKind kind) {
@@ -189,12 +211,12 @@ public final class OathCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    /** Message d'utilisation d'une sous-commande ; key null pour l'usage general. */
+    /** Message d'utilisation d'une sous-commande. */
     private Command<CommandSourceStack> usage(String key) {
         return context -> {
             CommandSender sender = context.getSource().getSender();
-            String path = key == null ? "oath.usage.general" : "oath.usage." + key;
-            sender.sendMessage(plugin.getLang().prefixed(sender, path, "oath-command", commandName()));
+            sender.sendMessage(plugin.getLang().prefixed(sender, "oath.usage." + key,
+                    "oath-command", commandName()));
             return Command.SINGLE_SUCCESS;
         };
     }
