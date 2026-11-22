@@ -21,6 +21,9 @@ permissions:
   serverrules.superjudge:
     description: Pouvoirs etendus du juge (changer la regle citee, modulation 10-500 %)
     default: op
+  serverrules.manage:
+    description: Gerer les regles depuis le menu GUI (ajout, modification, suppression, ordre)
+    default: op
   serverrules.conflict.bypass:
     description: Traiter les cas dans lesquels on est implique
     default: op

@@ -110,7 +110,7 @@ internal, stable `id` that is generated automatically: **do not edit it by
 hand**.
 
 You can also manage rules in game with `/rules add|edit|remove|move`, or through
-the superjudge menu `/rules manage`.
+the management menu `/rules manage` (`serverrules.manage`).
 
 ## Commands
 
@@ -121,11 +121,11 @@ Command names and aliases are configurable (`/rules`, `/plaint`, `/judge`,
 
 | Command | Effect |
 |---|---|
-| `/rules` | Show all rules in chat |
+| `/rules` | Open the rules menu (GUI); the console still gets the chat table |
 | `/rules <number>` | Show a single rule |
 | `/rules new` | Review changes since your last visit |
-| `/rules gui` | Open the judges' rules menu (read-only) |
-| `/rules manage` | Open the superjudges' rules menu (editing) |
+| `/rules gui` | Explicit alias of `/rules` |
+| `/rules manage` | Open the rules management menu (editing, `serverrules.manage`) |
 | `/rules add` `edit <n>` `remove <n>` `move <n> <position>` `reload` | Manage rules |
 | `/rules confirm` | Confirm a pending rule change |
 
@@ -175,8 +175,9 @@ copy).
 |---|---|---|
 | `serverrules.complaint` | everyone | File a complaint |
 | `serverrules.oath` | everyone | Create and join oaths |
-| `serverrules.judge` | op | Receive and handle complaints; `/judge` and `/rules gui` |
-| `serverrules.superjudge` | op | Everything a judge can do, plus changing the cited rule, wider modulation (10%-500%) and `/rules manage` |
+| `serverrules.judge` | op | Receive and handle complaints; `/judge` |
+| `serverrules.superjudge` | op | Everything a judge can do, plus changing the cited rule, wider modulation (10%-500%) |
+| `serverrules.manage` | op | Open `/rules manage` and use every action inside it (add, edit, remove, move) |
 | `serverrules.conflict.bypass` | op | Handle complaints you are involved in |
 | `serverrules.add` | op | Add a rule |
 | `serverrules.edit` | op | Edit a rule |

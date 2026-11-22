@@ -14,11 +14,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * GUI de gestion des regles (/rules manage, section 11.7), reservee aux superjuges.
+ * GUI de gestion des regles (/rules manage, section 11.7).
  *
  * Une regle par ligne, 5 par page : l'objet de la regle (clic = modifier),
  * un bouton monter, un bouton descendre et un bouton supprimer.
- * Chaque action verifie la permission de la commande equivalente.
+ * Chaque action verifie la permission de la commande equivalente ; la permission
+ * {@code serverrules.manage} ouvre le menu et donne acces a toutes ces actions.
  */
 public final class RulesManageGui extends GuiMenu {
 
@@ -32,6 +33,14 @@ public final class RulesManageGui extends GuiMenu {
     /** Ouvre la GUI de gestion des regles. */
     public static void open(ServerRulesPlugin plugin, Player viewer) {
         new RulesManageGui(plugin).open(viewer);
+    }
+
+    /**
+     * @return true si le joueur possede la permission demandee, ou la permission globale
+     *         {@code serverrules.manage} qui debloque toutes les actions du menu.
+     */
+    private static boolean can(Player viewer, String node) {
+        return viewer.hasPermission("serverrules.manage") || viewer.hasPermission(node);
     }
 
     @Override
@@ -49,16 +58,21 @@ public final class RulesManageGui extends GuiMenu {
         }
         int start = page * RULES_PER_PAGE;
 
-        boolean canMove = viewer.hasPermission("serverrules.move");
-        boolean canRemove = viewer.hasPermission("serverrules.remove");
+        boolean canEdit = can(viewer, "serverrules.edit");
+        boolean canMove = can(viewer, "serverrules.move");
+        boolean canRemove = can(viewer, "serverrules.remove");
 
         for (int i = 0; i < RULES_PER_PAGE && start + i < rules.size(); i++) {
             int number = start + i + 1;
             Rule rule = rules.get(start + i);
             int base = i * 9;
 
-            set(base, ruleSummary(plugin, viewer, number, rule.name(), rule.description(), rule.sanction()),
-                    player -> closeThen(player, () -> RuleEditGui.open(plugin, player, number)));
+            ItemStack summary = ruleSummary(plugin, viewer, number, rule.name(), rule.description(), rule.sanction());
+            if (canEdit) {
+                set(base, summary, player -> closeThen(player, () -> RuleEditGui.open(plugin, player, number)));
+            } else {
+                set(base, summary);
+            }
 
             if (canMove) {
                 if (number > 1) {
@@ -92,7 +106,7 @@ public final class RulesManageGui extends GuiMenu {
         fillEmpty(fillerItem(viewer));
         navigation(viewer, page, pages);
 
-        if (viewer.hasPermission("serverrules.add")) {
+        if (can(viewer, "serverrules.add")) {
             set(53, Menus.item(Material.EMERALD, lang.component(viewer, "gui.manage.add"), List.of()),
                     player -> closeThen(player, () -> RuleEditGui.openNew(plugin, player)));
         }

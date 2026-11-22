@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * GUI des regles des juges (/rules gui, section 11.1) : lecture seule.
+ * GUI des regles (/rules, section 11.1) : lecture seule.
  * Les regles ajoutees ou modifiees depuis la derniere ouverture sont mises en evidence.
  */
 public final class RulesGui extends GuiMenu {

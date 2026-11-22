@@ -29,11 +29,12 @@ import java.util.function.Predicate;
  * Commande des regles.
  *
  * Joueurs (Phases 2 et 4) :
- *   /rules            affiche toutes les regles
+ *   /rules            ouvre la GUI des regles (tableau en console)
  *   /rules &lt;n&gt;        affiche une regle precise
  *   /rules new        revoit les nouveautes
  *
  * Administration (Phase 8), une permission par commande :
+ *   /rules manage                                               (serverrules.manage)
  *   /rules add &lt;nom&gt; &lt;fine|ban&gt; &lt;valeur&gt; [description]          (serverrules.add)
  *   /rules edit &lt;n&gt; &lt;nom&gt; &lt;fine|ban&gt; &lt;valeur&gt; [description]  (serverrules.edit)
  *   /rules remove &lt;n&gt;                                            (serverrules.remove)
@@ -57,15 +58,11 @@ public final class RulesCommand {
 
             LiteralCommandNode<CommandSourceStack> node = LiteralArgumentBuilder
                     .<CommandSourceStack>literal(name)
-                    .executes(context -> {
-                        plugin.getDisplay().showTable(context.getSource().getSender());
-                        return Command.SINGLE_SUCCESS;
-                    })
+                    .executes(context -> openRules(context.getSource().getSender()))
                     .then(LiteralArgumentBuilder.<CommandSourceStack>literal("gui")
-                            .requires(permission("serverrules.judge"))
-                            .executes(context -> openRulesGui(context.getSource().getSender())))
+                            .executes(context -> openRules(context.getSource().getSender())))
                     .then(LiteralArgumentBuilder.<CommandSourceStack>literal("manage")
-                            .requires(permission("serverrules.superjudge"))
+                            .requires(anyPermission("serverrules.manage", "serverrules.superjudge"))
                             .executes(context -> openManageGui(context.getSource().getSender())))
                     .then(Commands.argument("number", IntegerArgumentType.integer(1))
                             .executes(this::showRule))
@@ -123,12 +120,12 @@ public final class RulesCommand {
         });
     }
 
-    /** Ouvre la GUI des regles des juges (`/rules gui`). */
-    private int openRulesGui(CommandSender sender) {
+    /** `/rules` : ouvre la GUI des regles pour un joueur, affiche le tableau pour tout autre emetteur. */
+    private int openRules(CommandSender sender) {
         if (sender instanceof Player player) {
             RulesGui.open(plugin, player);
         } else {
-            sender.sendMessage(plugin.getLang().prefixed(sender, "gui.players-only"));
+            plugin.getDisplay().showTable(sender);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -253,5 +250,17 @@ public final class RulesCommand {
 
     private static Predicate<CommandSourceStack> permission(String node) {
         return source -> source.getSender().hasPermission(node);
+    }
+
+    /** @return une condition vraie si l'emetteur possede au moins une des permissions indiquees. */
+    private static Predicate<CommandSourceStack> anyPermission(String... nodes) {
+        return source -> {
+            for (String node : nodes) {
+                if (source.getSender().hasPermission(node)) {
+                    return true;
+                }
+            }
+            return false;
+        };
     }
 }
