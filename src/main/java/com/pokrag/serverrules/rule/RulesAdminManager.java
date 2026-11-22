@@ -43,7 +43,7 @@ public final class RulesAdminManager {
         if (change.kind() == PendingRuleChange.Kind.ADD) {
             // Le numero affiche est celui que la regle prendra une fois ajoutee.
             effective = new PendingRuleChange(PendingRuleChange.Kind.ADD,
-                    rules.rules().size() + 1, change.name(), change.description(), change.sanction());
+                    rules.rules().size() + 1, change.name(), change.description(), change.sanctions());
         } else {
             Rule existing = rules.byNumber(change.number());
             if (existing == null) {
@@ -54,7 +54,7 @@ public final class RulesAdminManager {
             if (change.kind() == PendingRuleChange.Kind.REMOVE) {
                 // Le recapitulatif montre la regle reelle, pas un nom fourni.
                 effective = new PendingRuleChange(PendingRuleChange.Kind.REMOVE,
-                        change.number(), existing.name(), "", null);
+                        change.number(), existing.name(), "", List.of());
             }
         }
 
@@ -128,10 +128,10 @@ public final class RulesAdminManager {
         Database.Change recorded;
 
         if (change.kind() == PendingRuleChange.Kind.ADD) {
-            Rule rule = rules.create(change.name(), change.description(), change.sanction());
+            Rule rule = rules.create(change.name(), change.description(), change.sanctions());
             recorded = new Database.Change(ChangeType.ADDED, rules.rules().size(), rule.name());
         } else if (change.kind() == PendingRuleChange.Kind.EDIT) {
-            Rule rule = rules.replace(change.number(), change.name(), change.description(), change.sanction());
+            Rule rule = rules.replace(change.number(), change.name(), change.description(), change.sanctions());
             if (rule == null) {
                 notFound(sender, change.number());
                 return;
@@ -161,12 +161,12 @@ public final class RulesAdminManager {
                     "number", String.valueOf(change.number()),
                     "name", change.name(),
                     "description", change.description(),
-                    "sanction", plugin.getDisplay().sanctionText(sender, change.sanction()));
+                    "sanction", plugin.getDisplay().sanctionText(sender, change.sanctions()));
             case EDIT -> lang.component(sender, "rules.admin.pending-edit",
                     "number", String.valueOf(change.number()),
                     "name", change.name(),
                     "description", change.description(),
-                    "sanction", plugin.getDisplay().sanctionText(sender, change.sanction()));
+                    "sanction", plugin.getDisplay().sanctionText(sender, change.sanctions()));
             case REMOVE -> lang.component(sender, "rules.admin.pending-remove",
                     "number", String.valueOf(change.number()),
                     "name", change.name());

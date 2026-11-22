@@ -10,6 +10,7 @@ error:
   invalid-duration: "The duration is invalid."
   fine-refused: "The economy plugin refused the withdrawal (negative balances may be disabled)."
   ban-failed: "The ban could not be applied."
+  invalid-sanction: "The custom sanction is invalid."
 
 rules:
   header: "<dark_gray>------- <green>Server rules <dark_gray>-------"
@@ -21,6 +22,7 @@ rules:
   sanction:
     fine: "<red>Fine: {amount}"
     temp-ban: "<red>Temporary ban: {duration}"
+    custom: "<red>Sanction: {text}"
   changes:
     header: "<dark_gray>--- <green>Rule changes since your last visit <dark_gray>---"
     added: "<green>[+] Rule {number}. {name}"
@@ -94,6 +96,11 @@ judge:
   no-modulation: "<red>This citation cannot be modulated."
   custom-manual: "<red>This is a custom sanction: it cannot be applied automatically. Use /judge done once executed."
   custom-to-execute: "<gold>Complaint #{id}: custom sanction. Execute it, then mark the complaint as done."
+  ai-disabled: "<gray>AI sanction processing is disabled (no API key). Apply this custom sanction manually as an admin."
+  ai-passed: "<gray>The AI left this custom sanction to your judgement."
+  ai-applied: "<green>The AI applied the sanction: <white>{command}"
+  ai-failed: "<red>The AI could not apply this custom sanction. Handle it manually."
+  ai-no-credit: "<red>The AI (OpenRouter) has no credit left. Handle this custom sanction manually."
   done-not-custom: "<red>Only a custom sanction can be marked as done."
   dismissed: "<gray>Complaint #{id} dismissed without further action."
   done: "<green>Complaint #{id} marked as done."
@@ -283,11 +290,35 @@ gui:
     edit-description: "<white>Description"
     edit-type: "<white>Type: <yellow>{type}"
     edit-value: "<white>Value"
+    edit-sanctions: "<white>Sanctions: <yellow>{count}"
     edit-save: "<green>Save"
     ask-name: "<gold>Type the rule name in the chat."
     name-required: "<red>The name is required."
+    sanction-required: "<red>Add at least one sanction."
     ask-description: "<gold>Type the rule description in the chat."
     ask-amount: "<gold>Type the fine amount in the chat."
     ask-duration: "<gold>Type the ban duration in the chat."
     type-fine: "fine"
     type-ban: "temporary ban"
+  sanction-edit:
+    title: "<dark_gray>Edit a sanction"
+    entry-fine: "<gold>Fine"
+    entry-ban: "<yellow>Temporary ban"
+    entry-custom: "<gray>Custom sanction"
+    ask-amount: "<gold>Type the fine amount in the chat."
+    ask-ban: "<gold>Type the ban duration in the chat."
+    ask-custom: "<gold>Describe the custom sanction in the chat."
+  sanction-list:
+    title: "<dark_gray>Sanctions of the rule"
+    entry-fine: "<gold>Fine: <white>{amount}"
+    entry-ban: "<yellow>Temporary ban: <white>{duration}"
+    entry-custom: "<gray>Custom: <white>{text}"
+    empty: "<gray>No sanction yet. Add one below."
+    add: "<green>Add a sanction"
+
+ai:
+  no-credit-notify: "<red>The OpenRouter API used for custom sanctions has run out of credit. Custom sanctions must now be handled manually."
+
+update:
+  available: "<gold>A new ServerRules version is available: <white>{latest} <gray>(current: {current}) <click:open_url:'{url}'><aqua>[Download]</click>"
+

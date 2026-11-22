@@ -67,7 +67,7 @@ public final class RulesManageGui extends GuiMenu {
             Rule rule = rules.get(start + i);
             int base = i * 9;
 
-            ItemStack summary = ruleSummary(plugin, viewer, number, rule.name(), rule.description(), rule.sanction());
+            ItemStack summary = ruleSummary(plugin, viewer, number, rule.name(), rule.description(), rule.sanctions());
             if (canEdit) {
                 set(base, summary, player -> closeThen(player, () -> RuleEditGui.open(plugin, player, number)));
             } else {
@@ -115,7 +115,7 @@ public final class RulesManageGui extends GuiMenu {
     /** Demande la confirmation avant de supprimer une regle. */
     private void askDelete(Player viewer, int number, Rule rule) {
         ConfirmMenu.open(plugin, viewer,
-                List.of(ruleSummary(plugin, viewer, number, rule.name(), rule.description(), rule.sanction())),
+                List.of(ruleSummary(plugin, viewer, number, rule.name(), rule.description(), rule.sanctions())),
                 player -> {
                     plugin.getRulesAdminManager().apply(player,
                             new PendingRuleChange(PendingRuleChange.Kind.REMOVE, number, rule.name(), "", null));
@@ -126,14 +126,14 @@ public final class RulesManageGui extends GuiMenu {
 
     /** Objet recapitulant une regle (utilise dans la liste et dans les confirmations). */
     static ItemStack ruleSummary(ServerRulesPlugin plugin, Player viewer, int number,
-                                 String name, String description, Sanction sanction) {
+                                 String name, String description, List<Sanction> sanctions) {
         Lang lang = plugin.getLang();
         List<Component> lore = new ArrayList<>();
         if (description != null && !description.isBlank()) {
             lore.add(lang.component(viewer, "gui.manage.entry-description", "description", description));
         }
         lore.add(lang.component(viewer, "gui.manage.entry-sanction",
-                "sanction", plugin.getDisplay().sanctionText(viewer, sanction)));
+                "sanction", plugin.getDisplay().sanctionText(viewer, sanctions)));
         return Menus.item(Material.WRITABLE_BOOK,
                 lang.component(viewer, "gui.manage.entry-name",
                         "number", String.valueOf(number), "name", name),

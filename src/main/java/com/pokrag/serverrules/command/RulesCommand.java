@@ -163,19 +163,20 @@ public final class RulesCommand {
             return 0;
         }
         plugin.getRulesAdminManager().request(sender,
-                new PendingRuleChange(PendingRuleChange.Kind.REMOVE, number, rule.name(), "", null));
+                new PendingRuleChange(PendingRuleChange.Kind.REMOVE, number, rule.name(), "", List.of()));
         return Command.SINGLE_SUCCESS;
     }
 
     /**
-     * Construit l'arbre de contenu d'une regle : &lt;nom&gt; (fine|ban) &lt;valeur&gt; [description].
+     * Construit l'arbre de contenu d'une regle : &lt;nom&gt; (fine|ban|custom) &lt;valeur&gt; [description].
      *
      * @param edit true pour `/rules edit` (le numero de regle est lu dans le contexte).
      */
     private RequiredArgumentBuilder<CommandSourceStack, String> content(boolean edit) {
         return Commands.argument("name", StringArgumentType.string())
                 .then(sanctionNode("fine", SanctionType.FINE, edit))
-                .then(sanctionNode("ban", SanctionType.TEMP_BAN, edit));
+                .then(sanctionNode("ban", SanctionType.TEMP_BAN, edit))
+                .then(customNode(edit));
     }
 
     /** Construit le choix du type de sanction et la saisie de sa valeur. */
@@ -187,6 +188,15 @@ public final class RulesCommand {
                         .then(Commands.argument("description", StringArgumentType.greedyString())
                                 .executes(context -> submit(context, edit, type,
                                         StringArgumentType.getString(context, "description")))));
+    }
+
+    /** Sanction personnalisee : un texte libre decrivant ce que le joueur devra faire. */
+    private LiteralArgumentBuilder<CommandSourceStack> customNode(boolean edit) {
+        return LiteralArgumentBuilder.<CommandSourceStack>literal("custom")
+                .executes(usage(edit ? "edit" : "add"))
+                .then(Commands.argument("text", StringArgumentType.greedyString())
+                        .executes(context -> submitCustom(context, edit,
+                                StringArgumentType.getString(context, "text"))));
     }
 
     /** Valide la valeur saisie puis memorise la modification en attente de confirmation. */
@@ -215,7 +225,22 @@ public final class RulesCommand {
         int number = edit ? IntegerArgumentType.getInteger(context, "number") : -1;
         PendingRuleChange.Kind kind = edit ? PendingRuleChange.Kind.EDIT : PendingRuleChange.Kind.ADD;
         plugin.getRulesAdminManager().request(sender,
-                new PendingRuleChange(kind, number, name, description, sanction));
+                new PendingRuleChange(kind, number, name, description, List.of(sanction)));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** Memorise une regle dont la sanction est un texte libre (type CUSTOM). */
+    private int submitCustom(CommandContext<CommandSourceStack> context, boolean edit, String text) {
+        CommandSender sender = context.getSource().getSender();
+        if (text.isBlank()) {
+            sender.sendMessage(plugin.getLang().prefixed(sender, "error.invalid-sanction"));
+            return 0;
+        }
+        String name = StringArgumentType.getString(context, "name");
+        int number = edit ? IntegerArgumentType.getInteger(context, "number") : -1;
+        PendingRuleChange.Kind kind = edit ? PendingRuleChange.Kind.EDIT : PendingRuleChange.Kind.ADD;
+        plugin.getRulesAdminManager().request(sender,
+                new PendingRuleChange(kind, number, name, "", List.of(Sanction.custom(text))));
         return Command.SINGLE_SUCCESS;
     }
 

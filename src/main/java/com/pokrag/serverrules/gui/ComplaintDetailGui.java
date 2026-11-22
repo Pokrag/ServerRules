@@ -3,6 +3,7 @@ package com.pokrag.serverrules.gui;
 import com.pokrag.serverrules.ServerRulesPlugin;
 import com.pokrag.serverrules.complaint.Citation;
 import com.pokrag.serverrules.complaint.CitationType;
+import com.pokrag.serverrules.complaint.CitedSanction;
 import com.pokrag.serverrules.complaint.Complaint;
 import com.pokrag.serverrules.complaint.ComplaintStatus;
 import com.pokrag.serverrules.complaint.Conflicts;
@@ -82,7 +83,7 @@ public final class ComplaintDetailGui extends GuiMenu {
                     player -> closeThen(player, () -> plugin.getComplaintManager().dismiss(player, complaint.id())));
         }
 
-        if (citation.sanctionKind() == SanctionKind.CUSTOM
+        if (citation.hasCustom()
                 && complaint.status() == ComplaintStatus.SANCTION_A_EXECUTER) {
             set(23, Menus.item(Material.GOLD_INGOT,
                             lang.component(viewer, "gui.complaint-detail.mark-done"), List.of()),
@@ -154,10 +155,13 @@ public final class ComplaintDetailGui extends GuiMenu {
     /** @return true si la valeur modulee est valide et dans la fourchette du role. */
     private boolean validModulation(Player player, String text) {
         Citation citation = complaint.citation();
-        double base = citation.sanctionKind() == SanctionKind.FINE
-                ? citation.amount() : citation.durationSeconds();
+        CitedSanction single = citation.single();
+        if (single == null || !single.modulable()) {
+            return false;
+        }
+        double base = single.kind() == SanctionKind.FINE ? single.amount() : single.durationSeconds();
         double chosen;
-        if (citation.sanctionKind() == SanctionKind.FINE) {
+        if (single.kind() == SanctionKind.FINE) {
             try {
                 chosen = Double.parseDouble(text.trim().replace(',', '.'));
             } catch (NumberFormatException e) {

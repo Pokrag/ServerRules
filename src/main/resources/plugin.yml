@@ -42,3 +42,9 @@ permissions:
   serverrules.reload:
     description: Recharger la configuration
     default: op
+  serverrules.ai.notify:
+    description: Etre notifie quand l'IA de sanctions (OpenRouter) n'a plus de credit
+    default: op
+  serverrules.update.notify:
+    description: Etre notifie des nouvelles versions du plugin
+    default: op

@@ -68,5 +68,33 @@ rules:
 
   # Liste des regles. Le numero (position) est la cle : 1, 2, 3...
   # 'id' est un identifiant interne stable : ne le modifiez pas a la main.
+  # Une regle peut prevoir plusieurs sanctions (sanctions.1, sanctions.2...).
   # Vide par defaut : les administrateurs ajoutent leurs regles.
   list: {}
+
+# ============================================================
+#  Recherche de mise a jour (GitHub Releases)
+# ============================================================
+updates:
+  # Verifier automatiquement les nouvelles versions sur GitHub au demarrage
+  check: true
+  # Intervalle entre deux verifications (heures)
+  interval-hours: 6
+
+# ============================================================
+#  Sanctions libres traitees par l'IA (OpenRouter)
+# ============================================================
+# Une sanction libre est un texte decrit par un juge (ex. "doit nettoyer le spawn").
+# Si une cle API est renseignee, l'IA tente d'en faire une commande ; sinon elle est
+# laissee au juge. Laisser 'api-key' vide desactive completement cette fonctionnalite
+# (les sanctions libres restent alors appliquees manuellement par un administrateur).
+openrouter:
+  # Cle API OpenRouter (https://openrouter.ai/keys). Vide par defaut.
+  api-key: ""
+  # Modele OpenRouter a utiliser (modele gratuit performant par defaut).
+  model: "meta-llama/llama-3.3-70b-instruct:free"
+  # Adresse de l'API (a modifier seulement si necessaire)
+  endpoint: "https://openrouter.ai/api/v1/chat/completions"
+  # Delai maximum d'une requete (secondes)
+  timeout-seconds: 30
+

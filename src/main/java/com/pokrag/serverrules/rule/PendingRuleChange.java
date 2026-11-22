@@ -1,5 +1,7 @@
 package com.pokrag.serverrules.rule;
 
+import java.util.List;
+
 /**
  * Modification de regle en attente de confirmation par son auteur.
  *
@@ -7,7 +9,7 @@ package com.pokrag.serverrules.rule;
  * - EDIT   : remplacement du contenu de la regle "number" (identifiant conserve) ;
  * - REMOVE : suppression de la regle "number".
  */
-public record PendingRuleChange(Kind kind, int number, String name, String description, Sanction sanction) {
+public record PendingRuleChange(Kind kind, int number, String name, String description, List<Sanction> sanctions) {
 
     public enum Kind {
         ADD,

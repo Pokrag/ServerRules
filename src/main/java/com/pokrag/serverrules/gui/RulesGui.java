@@ -55,7 +55,7 @@ public final class RulesGui extends GuiMenu {
                 lore.add(lang.component(viewer, "gui.rules.entry-description", "description", rule.description()));
             }
             lore.add(lang.component(viewer, "gui.rules.entry-sanction",
-                    "sanction", plugin.getDisplay().sanctionText(viewer, rule.sanction())));
+                    "sanction", plugin.getDisplay().sanctionText(viewer, rule.sanctions())));
             if (glint) {
                 lore.add(lang.component(viewer, "gui.rules.changed"));
             }

@@ -1,6 +1,7 @@
 package com.pokrag.serverrules.complaint;
 
 import com.pokrag.serverrules.ServerRulesPlugin;
+import com.pokrag.serverrules.ai.OpenRouterService;
 import com.pokrag.serverrules.display.ComplaintDisplay;
 import com.pokrag.serverrules.rule.Rule;
 import com.pokrag.serverrules.sanction.AppliedSanction;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -177,103 +179,218 @@ public final class ComplaintManager {
 
     private void applyResolved(CommandSender viewer, Complaint complaint, String valueText) {
         Citation citation = complaint.citation();
-        if (citation.sanctionKind() == SanctionKind.CUSTOM) {
-            database.updateComplaintStatus(complaint.id(), ComplaintStatus.SANCTION_A_EXECUTER)
-                    .thenRun(() -> Sync.run(plugin, () -> viewer.sendMessage(plugin.getLang().prefixed(
-                            viewer, "judge.custom-to-execute", "id", String.valueOf(complaint.id())))))
-                    .exceptionally(error -> {
-                        plugin.getLogger().severe("Mise a jour de la plainte impossible : " + error.getMessage());
-                        return null;
-                    });
-            return;
-        }
 
-        double amount = citation.amount();
-        long seconds = citation.durationSeconds();
-
+        // Modulation : reservee a une citation ne comportant qu'une seule sanction modulable.
+        Double override = null;
         if (valueText != null && !valueText.isBlank()) {
-            if (!display.isRuleCitation(citation)) {
+            CitedSanction single = citation.single();
+            if (!display.isRuleCitation(citation) || single == null) {
                 viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.no-modulation"));
                 return;
             }
-
-            if (citation.sanctionKind() == SanctionKind.FINE) {
-                double parsed;
+            double chosen;
+            if (single.kind() == SanctionKind.FINE) {
                 try {
-                    parsed = Double.parseDouble(valueText.trim().replace(',', '.'));
+                    chosen = Double.parseDouble(valueText.trim().replace(',', '.'));
                 } catch (NumberFormatException e) {
                     viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.invalid-value"));
                     return;
                 }
-                if (parsed <= 0) {
+                if (chosen <= 0) {
                     viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.invalid-value"));
                     return;
                 }
-                amount = parsed;
             } else {
                 Duration parsed = TimeUtil.parse(valueText);
                 if (parsed == null) {
                     viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.invalid-value"));
                     return;
                 }
-                seconds = parsed.toSeconds();
+                chosen = parsed.toSeconds();
             }
 
-            double base = citation.sanctionKind() == SanctionKind.FINE
-                    ? citation.amount() : citation.durationSeconds();
-            double chosen = citation.sanctionKind() == SanctionKind.FINE ? amount : seconds;
+            double base = single.kind() == SanctionKind.FINE ? single.amount() : single.durationSeconds();
             double[] range = percentRange(viewer);
-            double min = base * range[0] / 100.0;
-            double max = base * range[1] / 100.0;
-            if (base <= 0 || chosen < min || chosen > max) {
+            if (base <= 0 || chosen < base * range[0] / 100.0 || chosen > base * range[1] / 100.0) {
                 viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.out-of-range",
-                        "min", displayValue(viewer, citation, min),
-                        "max", displayValue(viewer, citation, max)));
+                        "min", displayValue(viewer, single, base * range[0] / 100.0),
+                        "max", displayValue(viewer, single, base * range[1] / 100.0)));
                 return;
             }
+            override = chosen;
         }
 
-        applyAndRecord(viewer, complaint, amount, seconds);
+        applyAndRecord(viewer, complaint, override);
     }
 
-    /** Applique effectivement la sanction, l'enregistre dans l'historique et clot la plainte. */
-    private void applyAndRecord(CommandSender viewer, Complaint complaint, double amount, long seconds) {
+    /** Applique toutes les sanctions de la citation, puis clot la plainte (ou la laisse a executer). */
+    private void applyAndRecord(CommandSender viewer, Complaint complaint, Double override) {
         Citation citation = complaint.citation();
-        SanctionResult result;
-        if (citation.sanctionKind() == SanctionKind.FINE) {
-            OfflinePlayer target = Bukkit.getOfflinePlayer(complaint.accused());
-            result = fines.applyFine(target, amount);
-        } else {
-            result = bans.applyTempBan(complaint.accused(), complaint.accusedName(),
-                    Duration.ofSeconds(seconds), banReason(viewer, complaint));
+        List<AppliedSanction> applied = new ArrayList<>();
+        List<String> parts = new ArrayList<>();
+        List<CitedSanction> customs = new ArrayList<>();
+
+        for (CitedSanction sanction : citation.sanctions()) {
+            switch (sanction.kind()) {
+                case FINE -> {
+                    double amount = override != null ? override : sanction.amount();
+                    OfflinePlayer target = Bukkit.getOfflinePlayer(complaint.accused());
+                    SanctionResult result = fines.applyFine(target, amount);
+                    if (!result.success()) {
+                        sanctionFailed(viewer, result);
+                        return;
+                    }
+                    applied.add(record(complaint, citation, SanctionKind.FINE, amount, 0, viewer));
+                    parts.add(plugin.getLang().raw(viewer, "rules.sanction.fine",
+                            "amount", plugin.getEconomy().format(amount)));
+                }
+                case TEMP_BAN -> {
+                    long seconds = override != null ? override.longValue() : sanction.durationSeconds();
+                    SanctionResult result = bans.applyTempBan(complaint.accused(), complaint.accusedName(),
+                            Duration.ofSeconds(seconds), banReason(viewer, complaint));
+                    if (!result.success()) {
+                        sanctionFailed(viewer, result);
+                        return;
+                    }
+                    applied.add(record(complaint, citation, SanctionKind.TEMP_BAN, 0, seconds, viewer));
+                    parts.add(plugin.getLang().raw(viewer, "rules.sanction.temp-ban",
+                            "duration", TimeUtil.format(Duration.ofSeconds(seconds))));
+                }
+                case CUSTOM -> customs.add(sanction);
+            }
         }
 
-        if (!result.success()) {
-            viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.sanction-failed",
-                    "error", plugin.getLang().raw(viewer, result.errorKey())));
-            return;
+        recordAndFinalize(viewer, complaint, applied, parts, customs);
+    }
+
+    /** Enregistre les sanctions appliquees, traite les sanctions libres, puis met a jour la plainte. */
+    private void recordAndFinalize(CommandSender viewer, Complaint complaint,
+                                   List<AppliedSanction> applied, List<String> parts,
+                                   List<CitedSanction> customs) {
+        CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
+        for (AppliedSanction sanction : applied) {
+            chain = chain.thenCompose(ignored -> database.appendSanction(sanction));
         }
 
-        AppliedSanction record = new AppliedSanction(complaint.id(), citation.refId(), citation.number(),
-                citation.name(), citation.sanctionKind(), amount, seconds,
-                viewer.getName(), System.currentTimeMillis());
+        CompletableFuture<Boolean> afterCustoms = customs.isEmpty()
+                ? chain.thenApply(ignored -> false)
+                : processCustoms(chain, viewer, complaint, customs);
 
-        database.appendSanction(record)
-                .thenCompose(ignored -> database.updateComplaintStatus(complaint.id(), ComplaintStatus.TRAITEE))
-                .thenRun(() -> Sync.run(plugin, () -> {
-                    viewer.sendMessage(plugin.getLang().prefixed(
-                            viewer, "judge.sanction-applied",
+        afterCustoms
+                .thenCompose(deferred -> database.updateComplaintStatus(complaint.id(),
+                                deferred ? ComplaintStatus.SANCTION_A_EXECUTER : ComplaintStatus.TRAITEE)
+                        .thenApply(ignored -> deferred))
+                .thenAccept(deferred -> Sync.run(plugin, () -> {
+                    if (deferred) {
+                        viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.custom-to-execute",
+                                "id", String.valueOf(complaint.id())));
+                        return;
+                    }
+                    viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.sanction-applied",
                             "id", String.valueOf(complaint.id()),
-                            "sanction", displayValue(viewer, citation,
-                                    citation.sanctionKind() == SanctionKind.FINE ? amount : seconds)));
-                    if (citation.type() == CitationType.OATH) {
-                        plugin.getOathManager().onBreachSanctioned(citation.refId());
+                            "sanction", String.join("<gray>, ", parts)));
+                    if (complaint.citation().type() == CitationType.OATH) {
+                        plugin.getOathManager().onBreachSanctioned(complaint.citation().refId());
                     }
                 }))
                 .exceptionally(error -> {
                     plugin.getLogger().severe("Enregistrement de la sanction impossible : " + error.getMessage());
                     return null;
                 });
+    }
+
+    /**
+     * Traite chaque sanction libre (texte) : l'IA en fait une commande si possible,
+     * sinon elle est laissee a la charge du juge.
+     *
+     * @return un futur valant true si au moins une sanction doit encore etre executee manuellement.
+     */
+    private CompletableFuture<Boolean> processCustoms(CompletableFuture<Void> chain, CommandSender viewer,
+                                                      Complaint complaint, List<CitedSanction> customs) {
+        CompletableFuture<Boolean> result = chain.thenApply(ignored -> false);
+        for (CitedSanction custom : customs) {
+            result = result.thenCompose(deferred ->
+                    applyCustom(viewer, complaint, custom).thenApply(handled -> deferred || !handled));
+        }
+        return result;
+    }
+
+    /**
+     * @return un futur valant true si la sanction a ete traduite en commande et executee,
+     *         false si elle reste a la charge du juge (IA desactivee, refus, erreur ou credit epuise).
+     */
+    private CompletableFuture<Boolean> applyCustom(CommandSender viewer, Complaint complaint, CitedSanction custom) {
+        OpenRouterService ai = plugin.getOpenRouter();
+        if (!ai.configured()) {
+            // Aucune cle API : l'administrateur applique la sanction manuellement.
+            Sync.run(plugin, () -> viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.ai-disabled")));
+            return CompletableFuture.completedFuture(false);
+        }
+
+        return ai.toCommand(custom.customText(), complaint.accusedName(), complaint.citation().name())
+                .thenCompose(verdict -> {
+                    switch (verdict.kind()) {
+                        case COMMAND -> {
+                            return executeCommand(verdict.command()).thenCompose(ok -> {
+                                if (!ok) {
+                                    Sync.run(plugin, () -> viewer.sendMessage(
+                                            plugin.getLang().prefixed(viewer, "judge.ai-failed")));
+                                    return CompletableFuture.completedFuture(false);
+                                }
+                                return database.appendSanction(record(complaint, complaint.citation(),
+                                                SanctionKind.CUSTOM, 0, 0, viewer))
+                                        .thenApply(ignored -> {
+                                            Sync.run(plugin, () -> viewer.sendMessage(plugin.getLang().prefixed(
+                                                    viewer, "judge.ai-applied", "command", verdict.command())));
+                                            return Boolean.TRUE;
+                                        });
+                            });
+                        }
+                        case NO_CREDIT -> {
+                            Sync.run(plugin, () -> viewer.sendMessage(
+                                    plugin.getLang().prefixed(viewer, "judge.ai-no-credit")));
+                            return CompletableFuture.completedFuture(false);
+                        }
+                        case ERROR -> {
+                            Sync.run(plugin, () -> viewer.sendMessage(
+                                    plugin.getLang().prefixed(viewer, "judge.ai-failed")));
+                            return CompletableFuture.completedFuture(false);
+                        }
+                        default -> {
+                            // PASS : l'IA laisse la main au juge.
+                            Sync.run(plugin, () -> viewer.sendMessage(
+                                    plugin.getLang().prefixed(viewer, "judge.ai-passed")));
+                            return CompletableFuture.completedFuture(false);
+                        }
+                    }
+                });
+    }
+
+    /** Execute une commande en tant que console, sur le thread principal. */
+    private CompletableFuture<Boolean> executeCommand(String command) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        Sync.run(plugin, () -> {
+            try {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                future.complete(true);
+            } catch (RuntimeException error) {
+                plugin.getLogger().warning("Commande de sanction IA refusee : " + error.getMessage());
+                future.complete(false);
+            }
+        });
+        return future;
+    }
+
+    /** Construit l'entree d'historique d'une sanction appliquee. */
+    private AppliedSanction record(Complaint complaint, Citation citation, SanctionKind kind,
+                                   double amount, long seconds, CommandSender judge) {
+        return new AppliedSanction(complaint.id(), citation.refId(), citation.number(),
+                citation.name(), kind, amount, seconds, judge.getName(), System.currentTimeMillis());
+    }
+
+    private void sanctionFailed(CommandSender viewer, SanctionResult result) {
+        viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.sanction-failed",
+                "error", plugin.getLang().raw(viewer, result.errorKey())));
     }
 
     /** Classe une plainte sans suite. */
@@ -293,10 +410,10 @@ public final class ComplaintManager {
                 }));
     }
 
-    /** Marque une sanction personnalisee (serment) comme executee. */
+    /** Marque une sanction personnalisee (ou une sanction libre) comme executee. */
     public void markDone(CommandSender viewer, long id) {
         withComplaint(viewer, id, complaint -> {
-            if (complaint.citation().sanctionKind() != SanctionKind.CUSTOM) {
+            if (!complaint.citation().hasCustom()) {
                 viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.done-not-custom"));
                 return;
             }
@@ -380,13 +497,14 @@ public final class ComplaintManager {
     }
 
     /** @return le texte d'une valeur de sanction (montant formate ou duree lisible). */
-    private String displayValue(CommandSender viewer, Citation citation, double value) {
-        if (citation.sanctionKind() == SanctionKind.FINE) {
-            return plugin.getLang().raw(viewer, "rules.sanction.fine",
+    private String displayValue(CommandSender viewer, CitedSanction sanction, double value) {
+        return switch (sanction.kind()) {
+            case FINE -> plugin.getLang().raw(viewer, "rules.sanction.fine",
                     "amount", plugin.getEconomy().format(value));
-        }
-        return plugin.getLang().raw(viewer, "rules.sanction.temp-ban",
-                "duration", TimeUtil.format(Duration.ofSeconds((long) value)));
+            case TEMP_BAN -> plugin.getLang().raw(viewer, "rules.sanction.temp-ban",
+                    "duration", TimeUtil.format(Duration.ofSeconds((long) value)));
+            case CUSTOM -> "";
+        };
     }
 
     /** @return la raison inscrite dans le bannissement (texte simple, sans balises). */

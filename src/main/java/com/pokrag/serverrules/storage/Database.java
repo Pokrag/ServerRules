@@ -1,9 +1,14 @@
 package com.pokrag.serverrules.storage;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.pokrag.serverrules.ServerRulesPlugin;
 import com.pokrag.serverrules.complaint.Citation;
 import com.pokrag.serverrules.complaint.CitationChange;
 import com.pokrag.serverrules.complaint.CitationType;
+import com.pokrag.serverrules.complaint.CitedSanction;
 import com.pokrag.serverrules.complaint.Complaint;
 import com.pokrag.serverrules.complaint.ComplaintStatus;
 import com.pokrag.serverrules.complaint.SanctionKind;
@@ -93,7 +98,10 @@ public final class Database {
                     + "citation_number INTEGER NOT NULL, citation_name TEXT NOT NULL, "
                     + "sanction_kind TEXT NOT NULL, sanction_amount REAL NOT NULL, "
                     + "sanction_duration INTEGER NOT NULL, custom_text TEXT NOT NULL DEFAULT '', "
-                    + "details TEXT NOT NULL, date INTEGER NOT NULL, status TEXT NOT NULL)");
+                    + "details TEXT NOT NULL, date INTEGER NOT NULL, status TEXT NOT NULL, "
+                    + "citation_sanctions TEXT NOT NULL DEFAULT '')");
+            // Migration 1.0 -> 1.0a : ajout de la colonne des sanctions multiples.
+            ensureColumn("complaints", "citation_sanctions", "TEXT NOT NULL DEFAULT ''");
             st.executeUpdate("CREATE TABLE IF NOT EXISTS complaint_citation_changes ("
                     + "seq INTEGER PRIMARY KEY AUTOINCREMENT, complaint_id INTEGER NOT NULL, "
                     + "old_number INTEGER NOT NULL, old_name TEXT NOT NULL, "
@@ -270,8 +278,9 @@ public final class Database {
                     "INSERT INTO complaints(plaintiff, plaintiff_name, accused, accused_name, "
                             + "citation_type, citation_ref_id, citation_number, citation_name, "
                             + "sanction_kind, sanction_amount, sanction_duration, custom_text, "
-                            + "details, date, status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                            + "details, date, status, citation_sanctions) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     Statement.RETURN_GENERATED_KEYS)) {
+                CitedSanction first = firstOf(c.citation().sanctions());
                 ps.setString(1, c.plaintiff().toString());
                 ps.setString(2, c.plaintiffName());
                 ps.setString(3, c.accused().toString());
@@ -280,13 +289,15 @@ public final class Database {
                 ps.setInt(6, c.citation().refId());
                 ps.setInt(7, c.citation().number());
                 ps.setString(8, c.citation().name());
-                ps.setString(9, c.citation().sanctionKind().name());
-                ps.setDouble(10, c.citation().amount());
-                ps.setLong(11, c.citation().durationSeconds());
-                ps.setString(12, c.citation().customText());
+                // Colonnes historiques (1.0) : resume de la premiere sanction, conservees pour compatibilite.
+                ps.setString(9, first == null ? SanctionKind.FINE.name() : first.kind().name());
+                ps.setDouble(10, first == null ? 0 : first.amount());
+                ps.setLong(11, first == null ? 0 : first.durationSeconds());
+                ps.setString(12, first == null ? "" : first.customText());
                 ps.setString(13, c.details());
                 ps.setLong(14, c.date());
                 ps.setString(15, c.status().name());
+                ps.setString(16, encodeSanctions(c.citation().sanctions()));
                 ps.executeUpdate();
                 try (ResultSet keys = ps.getGeneratedKeys()) {
                     return keys.next() ? keys.getLong(1) : 0L;
@@ -347,16 +358,18 @@ public final class Database {
             try (PreparedStatement ps = connection.prepareStatement(
                     "UPDATE complaints SET citation_type = ?, citation_ref_id = ?, citation_number = ?, "
                             + "citation_name = ?, sanction_kind = ?, sanction_amount = ?, "
-                            + "sanction_duration = ?, custom_text = ? WHERE id = ?")) {
+                            + "sanction_duration = ?, custom_text = ?, citation_sanctions = ? WHERE id = ?")) {
+                CitedSanction first = firstOf(citation.sanctions());
                 ps.setString(1, citation.type().name());
                 ps.setInt(2, citation.refId());
                 ps.setInt(3, citation.number());
                 ps.setString(4, citation.name());
-                ps.setString(5, citation.sanctionKind().name());
-                ps.setDouble(6, citation.amount());
-                ps.setLong(7, citation.durationSeconds());
-                ps.setString(8, citation.customText());
-                ps.setLong(9, id);
+                ps.setString(5, first == null ? SanctionKind.FINE.name() : first.kind().name());
+                ps.setDouble(6, first == null ? 0 : first.amount());
+                ps.setLong(7, first == null ? 0 : first.durationSeconds());
+                ps.setString(8, first == null ? "" : first.customText());
+                ps.setString(9, encodeSanctions(citation.sanctions()));
+                ps.setLong(10, id);
                 ps.executeUpdate();
             }
         });
@@ -549,15 +562,21 @@ public final class Database {
     }
 
     private Complaint readComplaint(ResultSet rs) throws SQLException {
+        List<CitedSanction> sanctions = decodeSanctions(rs.getString("citation_sanctions"));
+        if (sanctions.isEmpty()) {
+            // Donnees 1.0 : une seule sanction dans les colonnes historiques.
+            sanctions = List.of(new CitedSanction(
+                    SanctionKind.valueOf(rs.getString("sanction_kind")),
+                    rs.getDouble("sanction_amount"),
+                    rs.getLong("sanction_duration"),
+                    rs.getString("custom_text")));
+        }
         Citation citation = new Citation(
                 CitationType.valueOf(rs.getString("citation_type")),
                 rs.getInt("citation_ref_id"),
                 rs.getInt("citation_number"),
                 rs.getString("citation_name"),
-                SanctionKind.valueOf(rs.getString("sanction_kind")),
-                rs.getDouble("sanction_amount"),
-                rs.getLong("sanction_duration"),
-                rs.getString("custom_text"));
+                sanctions);
         return new Complaint(
                 rs.getLong("id"),
                 UUID.fromString(rs.getString("plaintiff")),
@@ -568,6 +587,64 @@ public final class Database {
                 rs.getString("details"),
                 rs.getLong("date"),
                 ComplaintStatus.valueOf(rs.getString("status")));
+    }
+
+    // ------------------------------------------------------------- migration
+
+    /** Ajoute une colonne a une table si elle n'existe pas encore (migration d'une base existante). */
+    private void ensureColumn(String table, String column, String definition) throws SQLException {
+        try (Statement st = connection.createStatement();
+             ResultSet rs = st.executeQuery("PRAGMA table_info(" + table + ")")) {
+            while (rs.next()) {
+                if (column.equalsIgnoreCase(rs.getString("name"))) {
+                    return;
+                }
+            }
+        }
+        try (Statement st = connection.createStatement()) {
+            st.executeUpdate("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+        }
+    }
+
+    /** @return la premiere sanction d'une liste, ou null si elle est vide. */
+    private static CitedSanction firstOf(List<CitedSanction> sanctions) {
+        return sanctions.isEmpty() ? null : sanctions.get(0);
+    }
+
+    /** Serialise une liste de sanctions figees en JSON (colonne {@code citation_sanctions}). */
+    private static String encodeSanctions(List<CitedSanction> sanctions) {
+        JsonArray array = new JsonArray();
+        for (CitedSanction sanction : sanctions) {
+            JsonObject object = new JsonObject();
+            object.addProperty("kind", sanction.kind().name());
+            object.addProperty("amount", sanction.amount());
+            object.addProperty("duration", sanction.durationSeconds());
+            object.addProperty("text", sanction.customText());
+            array.add(object);
+        }
+        return array.toString();
+    }
+
+    /** Relit une liste de sanctions figees depuis son JSON ; liste vide si le contenu est illisible. */
+    private static List<CitedSanction> decodeSanctions(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            List<CitedSanction> list = new ArrayList<>();
+            for (JsonElement element : JsonParser.parseString(json).getAsJsonArray()) {
+                JsonObject object = element.getAsJsonObject();
+                list.add(new CitedSanction(
+                        SanctionKind.valueOf(object.get("kind").getAsString()),
+                        object.get("amount").getAsDouble(),
+                        object.get("duration").getAsLong(),
+                        object.has("text") && !object.get("text").isJsonNull()
+                                ? object.get("text").getAsString() : ""));
+            }
+            return list;
+        } catch (RuntimeException e) {
+            return List.of();
+        }
     }
 
     // ---------------------------------------------------------------- interne

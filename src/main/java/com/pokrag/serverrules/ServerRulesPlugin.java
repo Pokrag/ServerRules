@@ -1,5 +1,6 @@
 package com.pokrag.serverrules;
 
+import com.pokrag.serverrules.ai.OpenRouterService;
 import com.pokrag.serverrules.command.JudgeCommand;
 import com.pokrag.serverrules.command.OathCommand;
 import com.pokrag.serverrules.command.PlaintCommand;
@@ -18,6 +19,7 @@ import com.pokrag.serverrules.sanction.BanService;
 import com.pokrag.serverrules.sanction.FineService;
 import com.pokrag.serverrules.storage.Database;
 import com.pokrag.serverrules.track.ChangeTracker;
+import com.pokrag.serverrules.update.UpdateChecker;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -45,6 +47,8 @@ public final class ServerRulesPlugin extends JavaPlugin {
     private ComplaintManager complaintManager;
     private OathManager oathManager;
     private ChatInput chatInput;
+    private OpenRouterService openRouter;
+    private UpdateChecker updateChecker;
 
     @Override
     public void onEnable() {
@@ -80,6 +84,7 @@ public final class ServerRulesPlugin extends JavaPlugin {
         FineService fines = new FineService(this);
         BanService bans = new BanService(this);
         this.complaintDisplay = new ComplaintDisplay(this);
+        this.openRouter = new OpenRouterService(this);
         this.complaintManager = new ComplaintManager(this, database, complaintDisplay, fines, bans);
         fines.warnIfNegativeBalanceImpossible();
 
@@ -92,6 +97,10 @@ public final class ServerRulesPlugin extends JavaPlugin {
         new JudgeCommand(this).register();
         new OathCommand(this).register();
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
+
+        // Recherche de mise a jour (Phase 13) : verifie les releases GitHub en arriere-plan.
+        this.updateChecker = new UpdateChecker(this);
+        this.updateChecker.start();
 
         // Menus d'inventaire (Phase 11) : clics annules et saisie de texte dans le chat.
         this.chatInput = new ChatInput(this);
@@ -106,6 +115,9 @@ public final class ServerRulesPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (updateChecker != null) {
+            updateChecker.stop();
+        }
         if (oathManager != null) {
             oathManager.stopTicker();
         }
@@ -194,5 +206,15 @@ public final class ServerRulesPlugin extends JavaPlugin {
     /** @return la saisie de texte dans le chat des menus (Phase 11). */
     public ChatInput getChatInput() {
         return chatInput;
+    }
+
+    /** @return le service IA OpenRouter pour les sanctions libres (Phase 13). */
+    public OpenRouterService getOpenRouter() {
+        return openRouter;
+    }
+
+    /** @return la recherche de mise a jour GitHub (Phase 13). */
+    public UpdateChecker getUpdateChecker() {
+        return updateChecker;
     }
 }

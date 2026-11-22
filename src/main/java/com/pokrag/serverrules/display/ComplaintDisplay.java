@@ -3,9 +3,9 @@ package com.pokrag.serverrules.display;
 import com.pokrag.serverrules.ServerRulesPlugin;
 import com.pokrag.serverrules.complaint.Citation;
 import com.pokrag.serverrules.complaint.CitationType;
+import com.pokrag.serverrules.complaint.CitedSanction;
 import com.pokrag.serverrules.complaint.Complaint;
 import com.pokrag.serverrules.complaint.ComplaintStatus;
-import com.pokrag.serverrules.complaint.SanctionKind;
 import com.pokrag.serverrules.lang.Lang;
 import com.pokrag.serverrules.util.TimeUtil;
 import net.kyori.adventure.text.Component;
@@ -70,14 +70,23 @@ public final class ComplaintDisplay {
                 "name", citation.name());
     }
 
-    /** @return le texte de la sanction citee. */
+    /** @return le texte des sanctions citees (une regle peut en prevoir plusieurs). */
     public String sanctionText(CommandSender viewer, Citation citation) {
-        return switch (citation.sanctionKind()) {
+        List<String> parts = new ArrayList<>();
+        for (CitedSanction sanction : citation.sanctions()) {
+            parts.add(sanctionText(viewer, sanction));
+        }
+        return String.join("<gray>, ", parts);
+    }
+
+    /** @return le texte d'une sanction figee. */
+    public String sanctionText(CommandSender viewer, CitedSanction sanction) {
+        return switch (sanction.kind()) {
             case FINE -> lang.raw(viewer, "rules.sanction.fine",
-                    "amount", plugin.getEconomy().format(citation.amount()));
+                    "amount", plugin.getEconomy().format(sanction.amount()));
             case TEMP_BAN -> lang.raw(viewer, "rules.sanction.temp-ban",
-                    "duration", TimeUtil.format(Duration.ofSeconds(citation.durationSeconds())));
-            case CUSTOM -> citation.customText();
+                    "duration", TimeUtil.format(Duration.ofSeconds(sanction.durationSeconds())));
+            case CUSTOM -> sanction.customText();
         };
     }
 
@@ -86,10 +95,14 @@ public final class ComplaintDisplay {
         return lang.raw(viewer, "complaint.status." + status.langKey());
     }
 
-    /** @return true si la citation porte un type de sanction modulable (regles uniquement). */
+    /**
+     * @return true si la citation peut etre modulee : une regle avec une seule sanction
+     *         modulable (amende ou duree de ban). Plusieurs sanctions separentes sont
+     *         appliquees telles quelles.
+     */
     public boolean isRuleCitation(Citation citation) {
-        return citation.type() == CitationType.RULE
-                && (citation.sanctionKind() == SanctionKind.FINE || citation.sanctionKind() == SanctionKind.TEMP_BAN);
+        CitedSanction single = citation.single();
+        return citation.type() == CitationType.RULE && single != null && single.modulable();
     }
 
     private Component join(List<Component> lines) {

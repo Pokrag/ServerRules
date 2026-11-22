@@ -10,6 +10,7 @@ error:
   invalid-duration: "La durée est invalide."
   fine-refused: "Le plugin d'économie a refusé le retrait (les soldes négatifs sont peut-être désactivés)."
   ban-failed: "Le bannissement n'a pas pu être appliqué."
+  invalid-sanction: "La sanction personnalisée est invalide."
 
 rules:
   header: "<dark_gray>------- <green>Règles du serveur <dark_gray>-------"
@@ -21,6 +22,7 @@ rules:
   sanction:
     fine: "<red>Amende : {amount}"
     temp-ban: "<red>Bannissement temporaire : {duration}"
+    custom: "<red>Sanction : {text}"
   changes:
     header: "<dark_gray>--- <green>Changements de règles depuis votre dernière visite <dark_gray>---"
     added: "<green>[+] Règle {number}. {name}"
@@ -94,6 +96,11 @@ judge:
   no-modulation: "<red>Cette citation ne peut pas être modulée."
   custom-manual: "<red>Sanction personnalisée : elle ne peut pas être appliquée automatiquement. Utilisez /judge done une fois exécutée."
   custom-to-execute: "<gold>Plainte #{id} : sanction personnalisée. Exécutez-la, puis marquez la plainte comme exécutée."
+  ai-disabled: "<gray>Traitement IA des sanctions désactivé (aucune clé API). Appliquez cette sanction personnalisée manuellement en tant qu'administrateur."
+  ai-passed: "<gray>L'IA laisse cette sanction personnalisée à votre jugement."
+  ai-applied: "<green>L'IA a appliqué la sanction : <white>{command}"
+  ai-failed: "<red>L'IA n'a pas pu appliquer cette sanction personnalisée. Traitez-la manuellement."
+  ai-no-credit: "<red>L'IA (OpenRouter) n'a plus de crédit. Traitez cette sanction personnalisée manuellement."
   done-not-custom: "<red>Seule une sanction personnalisée peut être marquée comme exécutée."
   dismissed: "<gray>Plainte #{id} classée sans suite."
   done: "<green>Plainte #{id} marquée comme exécutée."
@@ -283,11 +290,35 @@ gui:
     edit-description: "<white>Description"
     edit-type: "<white>Type : <yellow>{type}"
     edit-value: "<white>Valeur"
+    edit-sanctions: "<white>Sanctions : <yellow>{count}"
     edit-save: "<green>Enregistrer"
     ask-name: "<gold>Écrivez le nom de la règle dans le chat."
     name-required: "<red>Le nom est obligatoire."
+    sanction-required: "<red>Ajoutez au moins une sanction."
     ask-description: "<gold>Écrivez la description de la règle dans le chat."
     ask-amount: "<gold>Écrivez le montant de l'amende dans le chat."
     ask-duration: "<gold>Écrivez la durée du bannissement dans le chat."
     type-fine: "amende"
     type-ban: "bannissement temporaire"
+  sanction-edit:
+    title: "<dark_gray>Modifier une sanction"
+    entry-fine: "<gold>Amende"
+    entry-ban: "<yellow>Bannissement temporaire"
+    entry-custom: "<gray>Sanction personnalisée"
+    ask-amount: "<gold>Écrivez le montant de l'amende dans le chat."
+    ask-ban: "<gold>Écrivez la durée du bannissement dans le chat."
+    ask-custom: "<gold>Décrivez la sanction personnalisée dans le chat."
+  sanction-list:
+    title: "<dark_gray>Sanctions de la règle"
+    entry-fine: "<gold>Amende : <white>{amount}"
+    entry-ban: "<yellow>Bannissement temporaire : <white>{duration}"
+    entry-custom: "<gray>Personnalisée : <white>{text}"
+    empty: "<gray>Aucune sanction. Ajoutez-en une ci-dessous."
+    add: "<green>Ajouter une sanction"
+
+ai:
+  no-credit-notify: "<red>L'API OpenRouter utilisée pour les sanctions personnalisées n'a plus de crédit. Ces sanctions doivent désormais être traitées manuellement."
+
+update:
+  available: "<gold>Une nouvelle version de ServerRules est disponible : <white>{latest} <gray>(actuelle : {current}) <click:open_url:'{url}'><aqua>[Télécharger]</click>"
+

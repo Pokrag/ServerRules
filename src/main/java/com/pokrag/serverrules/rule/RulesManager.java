@@ -59,7 +59,7 @@ public final class RulesManager {
             }
             String name = section.getString("name", "Rule " + number);
             String description = section.getString("description", "");
-            Sanction sanction = readSanction(section, number);
+            List<Sanction> sanctions = readSanctions(section, number);
 
             int id = section.getInt("id", -1);
             if (id <= 0 || !usedIds.add(id)) {
@@ -72,7 +72,7 @@ public final class RulesManager {
             }
             maxId = Math.max(maxId, id);
 
-            rules.add(new Rule(id, name, description, sanction));
+            rules.add(new Rule(id, name, description, sanctions));
         }
 
         if (dirty) {
@@ -80,14 +80,59 @@ public final class RulesManager {
         }
     }
 
-    /** Lit la sanction d'une regle, avec repli sur une amende nulle en cas de donnee invalide. */
-    private Sanction readSanction(ConfigurationSection ruleSection, int number) {
-        ConfigurationSection section = ruleSection.getConfigurationSection("sanction");
-        if (section == null) {
-            plugin.getLogger().warning("Regle " + number + " : sanction absente, amende 0 par defaut.");
-            return Sanction.fine(0);
+    /**
+     * Lit les sanctions d'une regle.
+     *
+     * Format actuel : une section {@code sanctions} contenant une liste.
+     * Ancien format (1.0) : une section unique {@code sanction} : elle est relue
+     * comme une liste d'un seul element.
+     */
+    private List<Sanction> readSanctions(ConfigurationSection ruleSection, int number) {
+        List<Sanction> sanctions = new ArrayList<>();
+
+        List<?> entries = ruleSection.getList("sanctions");
+        if (entries != null && !entries.isEmpty()) {
+            int index = 0;
+            for (Object entry : entries) {
+                if (entry instanceof ConfigurationSection section) {
+                    Sanction sanction = readSanctionSection(section, number);
+                    if (sanction != null) {
+                        sanctions.add(sanction);
+                    }
+                } else if (entry instanceof java.util.Map<?, ?> map) {
+                    ConfigurationSection section = new org.bukkit.configuration.MemoryConfiguration();
+                    for (java.util.Map.Entry<?, ?> e : map.entrySet()) {
+                        section.set(String.valueOf(e.getKey()), e.getValue());
+                    }
+                    Sanction sanction = readSanctionSection(section, number);
+                    if (sanction != null) {
+                        sanctions.add(sanction);
+                    }
+                } else {
+                    plugin.getLogger().warning("Regle " + number + " : sanction " + index + " illisible, ignoree.");
+                }
+                index++;
+            }
+        } else {
+            // Repli sur l'ancien format a sanction unique.
+            ConfigurationSection section = ruleSection.getConfigurationSection("sanction");
+            if (section != null) {
+                Sanction sanction = readSanctionSection(section, number);
+                if (sanction != null) {
+                    sanctions.add(sanction);
+                }
+            }
         }
 
+        if (sanctions.isEmpty()) {
+            plugin.getLogger().warning("Regle " + number + " : aucune sanction lisible, amende 0 par defaut.");
+            sanctions.add(Sanction.fine(0));
+        }
+        return sanctions;
+    }
+
+    /** Lit une sanction unique depuis sa section, ou null si elle est illisible. */
+    private Sanction readSanctionSection(ConfigurationSection section, int number) {
         SanctionType type;
         try {
             type = SanctionType.valueOf(section.getString("type", "FINE").trim().toUpperCase(Locale.ROOT));
@@ -98,6 +143,9 @@ public final class RulesManager {
 
         if (type == SanctionType.FINE) {
             return Sanction.fine(Math.max(0, section.getDouble("amount", 0)));
+        }
+        if (type == SanctionType.CUSTOM) {
+            return Sanction.custom(section.getString("text", ""));
         }
 
         Duration duration = TimeUtil.parse(section.getString("duration", ""));
@@ -119,18 +167,31 @@ public final class RulesManager {
             config.set(base + ".id", rule.id());
             config.set(base + ".name", rule.name());
             config.set(base + ".description", rule.description());
-            if (rule.sanction().type() == SanctionType.FINE) {
-                config.set(base + ".sanction.type", "FINE");
-                config.set(base + ".sanction.amount", rule.sanction().amount());
-            } else {
-                config.set(base + ".sanction.type", "TEMP_BAN");
-                config.set(base + ".sanction.duration", TimeUtil.format(rule.sanction().duration()));
+            int index = 0;
+            for (Sanction sanction : rule.sanctions()) {
+                String sanctionBase = base + ".sanctions." + index;
+                switch (sanction.type()) {
+                    case FINE -> {
+                        config.set(sanctionBase + ".type", "FINE");
+                        config.set(sanctionBase + ".amount", sanction.amount());
+                    }
+                    case TEMP_BAN -> {
+                        config.set(sanctionBase + ".type", "TEMP_BAN");
+                        config.set(sanctionBase + ".duration", TimeUtil.format(sanction.duration()));
+                    }
+                    case CUSTOM -> {
+                        config.set(sanctionBase + ".type", "CUSTOM");
+                        config.set(sanctionBase + ".text", sanction.text());
+                    }
+                }
+                index++;
             }
             number++;
         }
         config.setComments("rules.list", List.of(
                 "Liste des regles. Le numero (position) est la cle : 1, 2, 3...",
-                "'id' est un identifiant interne stable : ne le modifiez pas a la main."));
+                "'id' est un identifiant interne stable : ne le modifiez pas a la main.",
+                "Chaque regle peut prevoir plusieurs sanctions dans 'sanctions'."));
         plugin.saveConfig();
     }
 
@@ -145,8 +206,8 @@ public final class RulesManager {
     }
 
     /** Ajoute une regle a la fin de la liste et renvoie sa nouvelle instance. */
-    public Rule create(String name, String description, Sanction sanction) {
-        Rule rule = new Rule(nextId(), name, description, sanction);
+    public Rule create(String name, String description, List<Sanction> sanctions) {
+        Rule rule = new Rule(nextId(), name, description, sanctions);
         rules.add(rule);
         return rule;
     }
@@ -156,12 +217,12 @@ public final class RulesManager {
      *
      * @return la regle mise a jour, ou null si le numero n'existe pas.
      */
-    public Rule replace(int number, String name, String description, Sanction sanction) {
+    public Rule replace(int number, String name, String description, List<Sanction> sanctions) {
         Rule old = byNumber(number);
         if (old == null) {
             return null;
         }
-        Rule updated = new Rule(old.id(), name, description, sanction);
+        Rule updated = new Rule(old.id(), name, description, sanctions);
         rules.set(number - 1, updated);
         return updated;
     }

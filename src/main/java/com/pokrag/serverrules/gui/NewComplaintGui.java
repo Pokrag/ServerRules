@@ -107,7 +107,7 @@ public final class NewComplaintGui extends GuiMenu {
                 lore.add(lang.component(viewer, "gui.rules.entry-description", "description", rule.description()));
             }
             lore.add(lang.component(viewer, "gui.rules.entry-sanction",
-                    "sanction", plugin.getDisplay().sanctionText(viewer, rule.sanction())));
+                    "sanction", plugin.getDisplay().sanctionText(viewer, rule.sanctions())));
 
             set(i, Menus.item(Material.WRITABLE_BOOK,
                             lang.component(viewer, "gui.new-complaint.entry-rule",

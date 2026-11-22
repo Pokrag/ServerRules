@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.pokrag'
-version = '1.0'
+version = '1.0a'
 description = 'ServerRules - regles, plaintes et serments pour serveur Paper'
 
 repositories {

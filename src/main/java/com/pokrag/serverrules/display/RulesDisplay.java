@@ -5,7 +5,6 @@ import com.pokrag.serverrules.lang.Lang;
 import com.pokrag.serverrules.rule.Rule;
 import com.pokrag.serverrules.rule.RuleChange;
 import com.pokrag.serverrules.rule.Sanction;
-import com.pokrag.serverrules.rule.SanctionType;
 import com.pokrag.serverrules.util.TimeUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -80,7 +79,7 @@ public final class RulesDisplay {
                 "number", String.valueOf(number),
                 "name", rule.name(),
                 "description", rule.description(),
-                "sanction", sanctionText(viewer, rule.sanction()));
+                "sanction", sanctionText(viewer, rule.sanctions()));
     }
 
     private Component changeLine(CommandSender viewer, RuleChange change) {
@@ -94,14 +93,24 @@ public final class RulesDisplay {
                 "name", change.ruleName());
     }
 
-    /** @return le texte MiniMessage de la sanction (montant en monnaie du serveur, duree lisible). */
-    public String sanctionText(CommandSender viewer, Sanction sanction) {
-        if (sanction.type() == SanctionType.FINE) {
-            return lang.raw(viewer, "rules.sanction.fine",
-                    "amount", plugin.getEconomy().format(sanction.amount()));
+    /** @return le texte MiniMessage des sanctions d'une regle, separees par des virgules. */
+    public String sanctionText(CommandSender viewer, List<Sanction> sanctions) {
+        List<String> parts = new ArrayList<>();
+        for (Sanction sanction : sanctions) {
+            parts.add(sanctionText(viewer, sanction));
         }
-        return lang.raw(viewer, "rules.sanction.temp-ban",
-                "duration", TimeUtil.format(sanction.duration()));
+        return String.join("<gray>, ", parts);
+    }
+
+    /** @return le texte MiniMessage de la sanction (montant en monnaie du serveur, duree lisible). */
+    private String sanctionText(CommandSender viewer, Sanction sanction) {
+        return switch (sanction.type()) {
+            case FINE -> lang.raw(viewer, "rules.sanction.fine",
+                    "amount", plugin.getEconomy().format(sanction.amount()));
+            case TEMP_BAN -> lang.raw(viewer, "rules.sanction.temp-ban",
+                    "duration", TimeUtil.format(sanction.duration()));
+            case CUSTOM -> lang.raw(viewer, "rules.sanction.custom", "text", sanction.text());
+        };
     }
 
     /** @return le nom configure de la commande des regles, precede d'un slash. */
