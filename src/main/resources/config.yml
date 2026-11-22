@@ -92,7 +92,7 @@ openrouter:
   # Cle API OpenRouter (https://openrouter.ai/keys). Vide par defaut.
   api-key: ""
   # Modele OpenRouter a utiliser (modele gratuit performant par defaut).
-  model: "meta-llama/llama-3.3-70b-instruct:free"
+  model: "google/gemma-4-31b-it:free"
   # Adresse de l'API (a modifier seulement si necessaire)
   endpoint: "https://openrouter.ai/api/v1/chat/completions"
   # Delai maximum d'une requete (secondes)

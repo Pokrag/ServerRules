@@ -33,7 +33,7 @@ import java.util.concurrent.CompletableFuture;
 public final class OpenRouterService {
 
     /** Modele gratuit performant propose par defaut. */
-    public static final String DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+    public static final String DEFAULT_MODEL = "google/gemma-4-31b-it:free";
 
     private static final String DEFAULT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
     private static final String NOTIFY_PERMISSION = "serverrules.ai.notify";
