@@ -56,6 +56,13 @@ public final class OathDisplay {
         };
     }
 
+    /** @return le texte d'une duree de serment ("illimitee" si le serment n'a pas de limite). */
+    public String durationText(CommandSender viewer, long seconds) {
+        return seconds <= 0
+                ? lang.raw(viewer, "oath.duration.infinite")
+                : TimeUtil.format(Duration.ofSeconds(seconds));
+    }
+
     /** @return le texte du statut d'un serment. */
     public String statusText(CommandSender viewer, OathStatus status) {
         return lang.raw(viewer, "oath.status." + status.langKey());
@@ -68,7 +75,7 @@ public final class OathDisplay {
         lines.add(lang.component(viewer, "oath.recap.parties", "parties", partyNames(members)));
         lines.add(lang.component(viewer, "oath.recap.promise", "promise", oath.promise()));
         lines.add(lang.component(viewer, "oath.recap.duration",
-                "duration", TimeUtil.format(Duration.ofSeconds(oath.durationSeconds()))));
+                "duration", durationText(viewer, oath.durationSeconds())));
         lines.add(lang.component(viewer, "oath.recap.sanction", "sanction", sanctionText(viewer, oath)));
         lines.add(lang.component(viewer, "oath.recap.status", "status", statusText(viewer, oath.status())));
         if (oath.status() == OathStatus.PROPOSE && oath.codeExpiresAt() > System.currentTimeMillis()) {

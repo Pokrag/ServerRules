@@ -7,7 +7,7 @@ import java.util.UUID;
 /**
  * Un serment : une promesse entre deux joueurs ou plus, avec une sanction prevue.
  *
- * - durationSeconds : duree de la promesse, a partir de l'activation ;
+ * - durationSeconds : duree de la promesse, a partir de l'activation (0 ou negatif = infinie) ;
  * - sanctionKind / amount / sanctionDurationSeconds / customText : sanction prevue ;
  * - code / codeExpiresAt : code d'invitation et sa date d'expiration ;
  * - activatedAt : date d'activation (0 tant que le serment n'est pas actif).
@@ -22,14 +22,19 @@ public record Oath(long id, UUID founder, String founderName, String promise,
         return status == OathStatus.ACTIF;
     }
 
-    /** @return date d'expiration de la promesse (0 si le serment n'est pas encore actif). */
-    public long expiresAt() {
-        return activatedAt <= 0 ? 0 : activatedAt + durationSeconds * 1000L;
+    /** @return true si la promesse n'a pas de duree limite (0 ou negatif = infinie). */
+    public boolean isInfinite() {
+        return durationSeconds <= 0;
     }
 
-    /** @return true si la promesse est encore dans sa duree. */
+    /** @return date d'expiration de la promesse (0 si le serment n'est pas actif ou est infini). */
+    public long expiresAt() {
+        return activatedAt <= 0 || isInfinite() ? 0 : activatedAt + durationSeconds * 1000L;
+    }
+
+    /** @return true si la promesse est encore dans sa duree (ou infinie). */
     public boolean isRunning(long now) {
-        return isActive() && (activatedAt <= 0 || now < expiresAt());
+        return isActive() && (activatedAt <= 0 || isInfinite() || now < expiresAt());
     }
 
     /** @return true si le delai de plainte apres expiration (en jours) est encore ouvert. */

@@ -101,7 +101,8 @@ public final class OathManager {
         for (Oath oath : new ArrayList<>(oaths.values())) {
             if (oath.status() == OathStatus.PROPOSE && now > oath.codeExpiresAt()) {
                 transition(oath, OathStatus.PROPOSITION_EXPIREE, oath.activatedAt());
-            } else if (oath.status() == OathStatus.ACTIF && oath.activatedAt() > 0 && now > oath.expiresAt()) {
+            } else if (oath.status() == OathStatus.ACTIF && !oath.isInfinite()
+                    && oath.activatedAt() > 0 && now > oath.expiresAt()) {
                 transition(oath, OathStatus.EXPIRE, oath.activatedAt());
             }
         }

@@ -90,34 +90,52 @@ public final class RulesManager {
     private List<Sanction> readSanctions(ConfigurationSection ruleSection, int number) {
         List<Sanction> sanctions = new ArrayList<>();
 
-        List<?> entries = ruleSection.getList("sanctions");
-        if (entries != null && !entries.isEmpty()) {
-            int index = 0;
-            for (Object entry : entries) {
-                if (entry instanceof ConfigurationSection section) {
-                    Sanction sanction = readSanctionSection(section, number);
-                    if (sanction != null) {
-                        sanctions.add(sanction);
-                    }
-                } else if (entry instanceof java.util.Map<?, ?> map) {
-                    ConfigurationSection section = new org.bukkit.configuration.MemoryConfiguration();
-                    for (java.util.Map.Entry<?, ?> e : map.entrySet()) {
-                        section.set(String.valueOf(e.getKey()), e.getValue());
-                    }
-                    Sanction sanction = readSanctionSection(section, number);
-                    if (sanction != null) {
-                        sanctions.add(sanction);
-                    }
-                } else {
-                    plugin.getLogger().warning("Regle " + number + " : sanction " + index + " illisible, ignoree.");
+        // Format ecrit par le plugin : une section "sanctions" dont les cles sont des index
+        // (sanctions.0.type, sanctions.1.type...). Ce n'est PAS une liste YAML.
+        ConfigurationSection section = ruleSection.getConfigurationSection("sanctions");
+        if (section != null) {
+            List<Integer> indexes = new ArrayList<>();
+            for (String key : section.getKeys(false)) {
+                try {
+                    indexes.add(Integer.parseInt(key));
+                } catch (NumberFormatException ignored) {
+                    plugin.getLogger().warning("Regle " + number + " : cle de sanction ignoree : " + key);
                 }
-                index++;
             }
-        } else {
-            // Repli sur l'ancien format a sanction unique.
-            ConfigurationSection section = ruleSection.getConfigurationSection("sanction");
-            if (section != null) {
-                Sanction sanction = readSanctionSection(section, number);
+            Collections.sort(indexes);
+            for (Integer index : indexes) {
+                ConfigurationSection entry = section.getConfigurationSection(String.valueOf(index));
+                if (entry == null) {
+                    continue;
+                }
+                Sanction sanction = readSanctionSection(entry, number);
+                if (sanction != null) {
+                    sanctions.add(sanction);
+                }
+            }
+        }
+
+        // Format liste ecrit a la main : sanctions: [ {type: ...}, ... ].
+        if (sanctions.isEmpty()) {
+            List<?> entries = ruleSection.getList("sanctions");
+            if (entries != null) {
+                for (Object entry : entries) {
+                    ConfigurationSection asSection = asSection(entry);
+                    if (asSection != null) {
+                        Sanction sanction = readSanctionSection(asSection, number);
+                        if (sanction != null) {
+                            sanctions.add(sanction);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Repli sur l'ancien format a sanction unique (1.0).
+        if (sanctions.isEmpty()) {
+            ConfigurationSection single = ruleSection.getConfigurationSection("sanction");
+            if (single != null) {
+                Sanction sanction = readSanctionSection(single, number);
                 if (sanction != null) {
                     sanctions.add(sanction);
                 }
@@ -129,6 +147,21 @@ public final class RulesManager {
             sanctions.add(Sanction.fine(0));
         }
         return sanctions;
+    }
+
+    /** Convertit une entree de liste YAML en section de configuration, ou null si le type est inattendu. */
+    private ConfigurationSection asSection(Object entry) {
+        if (entry instanceof ConfigurationSection section) {
+            return section;
+        }
+        if (entry instanceof java.util.Map<?, ?> map) {
+            ConfigurationSection section = new org.bukkit.configuration.MemoryConfiguration();
+            for (java.util.Map.Entry<?, ?> e : map.entrySet()) {
+                section.set(String.valueOf(e.getKey()), e.getValue());
+            }
+            return section;
+        }
+        return null;
     }
 
     /** Lit une sanction unique depuis sa section, ou null si elle est illisible. */

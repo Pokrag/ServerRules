@@ -116,10 +116,17 @@ public final class OathCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        Duration duration = TimeUtil.parse(StringArgumentType.getString(context, "duration"));
-        if (duration == null) {
-            founder.sendMessage(plugin.getLang().prefixed(founder, "oath.create.invalid-duration"));
-            return Command.SINGLE_SUCCESS;
+        String durationText = StringArgumentType.getString(context, "duration");
+        long durationSeconds;
+        if (OathCreateGui.isInfinite(durationText)) {
+            durationSeconds = 0; // 0 = serment illimite.
+        } else {
+            Duration duration = TimeUtil.parse(durationText);
+            if (duration == null) {
+                founder.sendMessage(plugin.getLang().prefixed(founder, "oath.create.invalid-duration"));
+                return Command.SINGLE_SUCCESS;
+            }
+            durationSeconds = duration.toSeconds();
         }
 
         double amount = 0;
@@ -151,7 +158,7 @@ public final class OathCommand {
         }
 
         String promise = StringArgumentType.getString(context, "promise");
-        plugin.getOathManager().create(founder, duration.toSeconds(), kind, amount, banSeconds, customText, promise);
+        plugin.getOathManager().create(founder, durationSeconds, kind, amount, banSeconds, customText, promise);
         return Command.SINGLE_SUCCESS;
     }
 

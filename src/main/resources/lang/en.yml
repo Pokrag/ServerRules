@@ -115,6 +115,8 @@ oath:
     cancel: "<gray>Usage: <white>{oath-command} cancel <id>"
   players-only: "<red>Only a player can use oaths."
   not-found: "<red>Oath #{id} does not exist."
+  duration:
+    infinite: "<white>unlimited"
   status:
     proposed: "<yellow>proposed"
     proposal-expired: "<gray>proposal expired"
@@ -262,7 +264,7 @@ gui:
     ask-details: "<gold>Describe the facts in the chat."
   oath-create:
     title: "<dark_gray>Create an oath"
-    ask-duration: "<gold>Type the oath duration in the chat (e.g. 7d)."
+    ask-duration: "<gold>Type the oath duration in the chat (e.g. 7d, or 0 for an unlimited oath)."
     entry-fine: "<gold>Fine"
     entry-ban: "<yellow>Temporary ban"
     entry-custom: "<gray>Custom sanction"

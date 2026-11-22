@@ -12,6 +12,8 @@ import org.bukkit.inventory.ItemStack;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * Parcours de creation d'un serment (/oath create, section 11.5).
@@ -23,6 +25,15 @@ import java.util.List;
  * 5. recapitulatif avec Creer et Annuler ; le code est ensuite donne dans le chat.
  */
 public final class OathCreateGui extends GuiMenu {
+
+    /** Mots acceptes pour un serment sans duree limite. */
+    public static final Set<String> INFINITE = Set.of(
+            "0", "-1", "inf", "infini", "infinite", "illimite", "illimitee", "permanent", "perm", "\u221e");
+
+    /** @return true si le texte saisi designe un serment sans duree limite. */
+    public static boolean isInfinite(String text) {
+        return text != null && INFINITE.contains(text.trim().toLowerCase(Locale.ROOT));
+    }
 
     private final long durationSeconds;
 
@@ -36,7 +47,11 @@ public final class OathCreateGui extends GuiMenu {
         Lang lang = plugin.getLang();
         viewer.sendMessage(lang.prefixed(viewer, "gui.oath-create.ask-duration"));
         plugin.getChatInput().request(viewer, text -> {
-            Duration duration = TimeUtil.parse(text.trim());
+            if (isInfinite(text)) {
+                new OathCreateGui(plugin, 0).open(viewer);
+                return;
+            }
+            Duration duration = TimeUtil.parse(text.trim().toLowerCase(Locale.ROOT));
             if (duration == null || duration.toSeconds() <= 0) {
                 viewer.sendMessage(lang.prefixed(viewer, "oath.create.invalid-duration"));
                 start(plugin, viewer);
@@ -144,7 +159,7 @@ public final class OathCreateGui extends GuiMenu {
         Lang lang = plugin.getLang();
         List<Component> lore = new ArrayList<>();
         lore.add(lang.component(viewer, "gui.oath-create.recap-duration",
-                "duration", TimeUtil.format(Duration.ofSeconds(durationSeconds))));
+                "duration", plugin.getOathManager().getDisplay().durationText(viewer, durationSeconds)));
         lore.add(lang.component(viewer, "gui.oath-create.recap-sanction",
                 "sanction", sanctionText(viewer, kind, amount, banSeconds, customText)));
         lore.add(lang.component(viewer, "gui.oath-create.recap-promise", "promise", promise));

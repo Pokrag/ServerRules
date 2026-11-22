@@ -72,7 +72,7 @@ public final class OathJoinGui extends GuiMenu {
                 "parties", partyNames(plugin.getOathManager().membersOf(oathId))));
         lore.add(lang.component(viewer, "gui.oaths.entry-promise", "promise", oath.promise()));
         lore.add(lang.component(viewer, "gui.oaths.detail-duration",
-                "duration", TimeUtil.format(Duration.ofSeconds(oath.durationSeconds()))));
+                "duration", plugin.getOathManager().getDisplay().durationText(viewer, oath.durationSeconds())));
         lore.add(lang.component(viewer, "gui.oaths.detail-sanction",
                 "sanction", plugin.getOathManager().getDisplay().sanctionText(viewer, oath)));
         return Menus.item(Material.PAPER,

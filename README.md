@@ -96,22 +96,33 @@ rules:
       id: 1
       name: "No griefing"
       description: "Do not destroy or modify other players' builds."
-      sanction:
-        type: FINE
-        amount: 500
+      sanctions:
+        0:
+          type: FINE
+          amount: 500
     2:
       id: 2
       name: "No insults"
       description: "Insults are forbidden in chat."
-      sanction:
-        type: TEMP_BAN
-        duration: "24h"
-  ```
+      sanctions:
+        0:
+          type: TEMP_BAN
+          duration: "24h"
+        1:
+          type: FINE
+          amount: 250
+```
 
-`type` is either `FINE` (with `amount`) or `TEMP_BAN` (with `duration`, a
-duration string such as `30m`, `24h` or `7d`). Each rule also carries an
-internal, stable `id` that is generated automatically: **do not edit it by
-hand**.
+Each rule can carry **several** sanctions under `sanctions`, keyed by their
+position (`0`, `1`, ...). A sanction `type` is one of:
+
+- `FINE` (with `amount`) — withdraws money from the offender;
+- `TEMP_BAN` (with `duration`, a duration string such as `30m`, `24h` or `7d`);
+- `CUSTOM` (with `text`) — free-form sanction; when an OpenRouter key is set,
+  the AI turns the text into console commands (see below).
+
+Each rule also carries an internal, stable `id` that is generated
+automatically: **do not edit it by hand**.
 
 You can also manage rules in game with `/rules add|edit|remove|move`, or through
 the management menu `/rules manage` (`serverrules.manage`).
@@ -172,6 +183,9 @@ complaint cannot handle it (unless they have `serverrules.conflict.bypass`).
 
 When an oath is created, the founder receives the join **code** in chat (click to
 copy).
+
+The `<duration>` may be any duration string (`7d`, `24h`, ...) or `0` (also
+`-1`, `inf`, `infinite`, `permanent`) for an **unlimited** oath.
 
 ## Permissions
 

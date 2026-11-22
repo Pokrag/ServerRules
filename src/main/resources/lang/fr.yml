@@ -115,6 +115,8 @@ oath:
     cancel: "<gray>Utilisation : <white>{oath-command} cancel <n°>"
   players-only: "<red>Seul un joueur peut utiliser les serments."
   not-found: "<red>Le serment #{id} n'existe pas."
+  duration:
+    infinite: "<white>illimitée"
   status:
     proposed: "<yellow>proposé"
     proposal-expired: "<gray>proposition expirée"
@@ -262,7 +264,7 @@ gui:
     ask-details: "<gold>Décrivez les faits dans le chat."
   oath-create:
     title: "<dark_gray>Créer un serment"
-    ask-duration: "<gold>Écrivez la durée du serment dans le chat (ex. 7j)."
+    ask-duration: "<gold>Écrivez la durée du serment dans le chat (ex. 7j, ou 0 pour un serment illimité)."
     entry-fine: "<gold>Amende"
     entry-ban: "<yellow>Bannissement temporaire"
     entry-custom: "<gray>Sanction personnalisée"
