@@ -327,11 +327,13 @@ public final class ComplaintManager {
             return CompletableFuture.completedFuture(false);
         }
 
-        return ai.toCommand(custom.customText(), complaint.accusedName(), complaint.citation().name())
+        return ai.toCommands(custom.customText(), complaint.accusedName(), complaint.plaintiffName(),
+                        complaint.citation().name())
                 .thenCompose(verdict -> {
                     switch (verdict.kind()) {
                         case COMMAND -> {
-                            return executeCommand(verdict.command()).thenCompose(ok -> {
+                            List<String> commands = verdict.commands();
+                            return executeCommands(commands).thenCompose(ok -> {
                                 if (!ok) {
                                     Sync.run(plugin, () -> viewer.sendMessage(
                                             plugin.getLang().prefixed(viewer, "judge.ai-failed")));
@@ -341,7 +343,8 @@ public final class ComplaintManager {
                                                 SanctionKind.CUSTOM, 0, 0, viewer))
                                         .thenApply(ignored -> {
                                             Sync.run(plugin, () -> viewer.sendMessage(plugin.getLang().prefixed(
-                                                    viewer, "judge.ai-applied", "command", verdict.command())));
+                                                    viewer, "judge.ai-applied",
+                                                    "command", String.join("<gray>, ", commands))));
                                             return Boolean.TRUE;
                                         });
                             });
@@ -364,6 +367,15 @@ public final class ComplaintManager {
                         }
                     }
                 });
+    }
+
+    /** Execute une suite de commandes en tant que console, dans l'ordre (thread principal). */
+    private CompletableFuture<Boolean> executeCommands(List<String> commands) {
+        CompletableFuture<Boolean> result = CompletableFuture.completedFuture(true);
+        for (String command : commands) {
+            result = result.thenCompose(ok -> ok ? executeCommand(command) : CompletableFuture.completedFuture(false));
+        }
+        return result;
     }
 
     /** Execute une commande en tant que console, sur le thread principal. */

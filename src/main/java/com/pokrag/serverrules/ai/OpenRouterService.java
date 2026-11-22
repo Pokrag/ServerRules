@@ -10,20 +10,23 @@ import com.pokrag.serverrules.util.Sync;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Traduit une sanction ecrite librement en commande serveur, via l'API OpenRouter.
+ * Traduit une sanction ecrite librement en une ou plusieurs commandes serveur,
+ * via l'API OpenRouter.
  *
  * - Desactive par defaut : sans cle API ({@code openrouter.api-key}), {@link #configured()}
  *   vaut false et la sanction libre reste a la charge de l'administrateur/juge.
  * - Le modele est choisi dans la configuration ({@code openrouter.model}) ; un modele
  *   gratuit performant est utilise par defaut.
- * - L'IA repond soit une commande (executable en console), soit l'abandon ({@code PASS})
- *   qui laisse le juge decider.
+ * - L'IA peut enchainer plusieurs commandes (ex. retirer une somme au sanctionne puis
+ *   la verser au plaignant), ou repondre l'abandon ({@code PASS}) qui laisse le juge decider.
  * - Si l'API n'a plus de credit, les joueurs disposant de la permission dediee
  *   ({@code serverrules.ai.notify}) sont prevenus.
  *
@@ -40,7 +43,7 @@ public final class OpenRouterService {
 
     /** Resultat possible d'une demande a l'IA. */
     public enum VerdictKind {
-        /** L'IA a produit une commande executable. */
+        /** L'IA a produit une ou plusieurs commandes executables. */
         COMMAND,
         /** L'IA laisse la main au juge. */
         PASS,
@@ -50,23 +53,23 @@ public final class OpenRouterService {
         ERROR
     }
 
-    /** Verdict rendu par l'IA : le type, et la commande s'il y en a une. */
-    public record Verdict(VerdictKind kind, String command) {
+    /** Verdict rendu par l'IA : le type, et les commandes s'il y en a. */
+    public record Verdict(VerdictKind kind, List<String> commands) {
 
-        static Verdict command(String command) {
-            return new Verdict(VerdictKind.COMMAND, command);
+        static Verdict commands(List<String> commands) {
+            return new Verdict(VerdictKind.COMMAND, List.copyOf(commands));
         }
 
         static Verdict pass() {
-            return new Verdict(VerdictKind.PASS, "");
+            return new Verdict(VerdictKind.PASS, List.of());
         }
 
         static Verdict noCredit() {
-            return new Verdict(VerdictKind.NO_CREDIT, "");
+            return new Verdict(VerdictKind.NO_CREDIT, List.of());
         }
 
         static Verdict error() {
-            return new Verdict(VerdictKind.ERROR, "");
+            return new Verdict(VerdictKind.ERROR, List.of());
         }
     }
 
@@ -83,23 +86,25 @@ public final class OpenRouterService {
     }
 
     /**
-     * Demande a l'IA de traduire une sanction libre en commande.
+     * Demande a l'IA de traduire une sanction libre en commande(s).
      *
-     * @param text     la sanction telle qu'ecrite par le juge
-     * @param accused  le pseudo du joueur concerne
-     * @param ruleName le nom de la regle citee (contexte)
+     * @param text      la sanction telle qu'ecrite par le juge
+     * @param accused   le pseudo du joueur sanctionne
+     * @param plaintiff le pseudo du plaignant (beneficiaire eventuel)
+     * @param ruleName  le nom de la regle citee (contexte)
      * @return un futur rendant le verdict (jamais null).
      */
-    public CompletableFuture<Verdict> toCommand(String text, String accused, String ruleName) {
+    public CompletableFuture<Verdict> toCommands(String text, String accused, String plaintiff, String ruleName) {
         if (!configured()) {
             return CompletableFuture.completedFuture(Verdict.pass());
         }
-        return CompletableFuture.supplyAsync(() -> request(text, accused, ruleName));
+        return CompletableFuture.supplyAsync(() -> request(text, accused, plaintiff, ruleName));
     }
 
-    private Verdict request(String text, String accused, String ruleName) {
+    private Verdict request(String text, String accused, String plaintiff, String ruleName) {
         try {
-            Http.Response response = Http.post(endpoint(), headers(), body(text, accused, ruleName), timeoutSeconds());
+            Http.Response response = Http.post(endpoint(), headers(),
+                    body(text, accused, plaintiff, ruleName), timeoutSeconds());
 
             if (response.status() == 402 || mentionsInsufficientCredit(response.body())) {
                 notifyNoCredit();
@@ -116,7 +121,7 @@ public final class OpenRouterService {
         }
     }
 
-    /** Lit la reponse de l'API et en deduit une commande, ou l'abandon. */
+    /** Lit la reponse de l'API et en deduit les commandes, ou l'abandon. */
     private Verdict interpret(String json) {
         try {
             JsonObject root = JsonParser.parseString(json).getAsJsonObject();
@@ -139,38 +144,46 @@ public final class OpenRouterService {
         }
     }
 
-    /** Analyse le texte rendu par l'IA : "COMMAND: ..." produit une commande, sinon abandon. */
+    /**
+     * Analyse le texte rendu par l'IA : chaque ligne "COMMAND: ..." devient une commande.
+     * Sans aucune ligne de commande, l'IA laisse la main au juge.
+     */
     private Verdict parseContent(String content) {
-        String cleaned = content.replace("`", "").trim();
-        for (String rawLine : cleaned.split("\\R")) {
+        List<String> commands = new ArrayList<>();
+        for (String rawLine : content.replace("`", "").split("\\R")) {
             String line = rawLine.trim();
             if (line.isEmpty()) {
                 continue;
             }
-            String upper = line.toUpperCase(Locale.ROOT);
-            if (upper.startsWith("COMMAND:")) {
+            if (line.toUpperCase(Locale.ROOT).startsWith("COMMAND:")) {
                 String command = line.substring("COMMAND:".length()).trim();
                 while (command.startsWith("/")) {
                     command = command.substring(1).trim();
                 }
-                return command.isEmpty() ? Verdict.pass() : Verdict.command(command);
+                if (!command.isEmpty()) {
+                    commands.add(command);
+                }
             }
-            // Toute autre reponse (y compris "PASS") laisse la main au juge.
-            return Verdict.pass();
         }
-        return Verdict.pass();
+        return commands.isEmpty() ? Verdict.pass() : Verdict.commands(commands);
     }
 
     /** Construit le corps JSON de la requete de chat. */
-    private String body(String text, String accused, String ruleName) {
-        String system = "Tu es un assistant technique d'un serveur Minecraft Paper. On te decrit une sanction "
-                + "en langage naturel et tu la traduis en UNE commande executee par la console qui l'applique au joueur.\n"
-                + "Reponds uniquement par une seule ligne, sans explication ni balise de code :\n"
-                + "- \"COMMAND: <commande>\" avec une commande valide (sans slash initial) utilisant le pseudo du joueur ; ou\n"
+    private String body(String text, String accused, String plaintiff, String ruleName) {
+        String system = "Tu es un assistant technique d'un serveur Minecraft Paper utilisant EssentialsX. "
+                + "On te decrit une sanction en langage naturel et tu la traduis en une ou plusieurs commandes "
+                + "executees par la console qui l'appliquent.\n"
+                + "Tu peux enchainer plusieurs commandes, une par ligne. Exemple pour retirer de l'argent au joueur "
+                + "sanctionne puis le verser au plaignant :\n"
+                + "COMMAND: eco take <joueur sanctionne> <montant>\n"
+                + "COMMAND: eco give <plaignant> <montant>\n"
+                + "Reponds uniquement par des lignes, sans explication ni balise de code :\n"
+                + "- une ligne \"COMMAND: <commande>\" par commande (sans slash initial) ; ou\n"
                 + "- \"PASS\" si aucune commande fiable ne permet de l'appliquer.\n"
-                + "Utilise le pseudo exact du joueur. N'invente jamais de commande : en cas de doute, reponds PASS.";
+                + "Utilise les pseudos exacts fournis. N'invente jamais de commande : en cas de doute, reponds PASS.";
         String user = "Regle concernee : " + safe(ruleName) + "\n"
-                + "Joueur : " + safe(accused) + "\n"
+                + "Joueur sanctionne : " + safe(accused) + "\n"
+                + "Plaignant : " + safe(plaintiff) + "\n"
                 + "Sanction a appliquer : " + safe(text);
 
         JsonObject systemMessage = new JsonObject();
@@ -187,7 +200,7 @@ public final class OpenRouterService {
         JsonObject payload = new JsonObject();
         payload.addProperty("model", model());
         payload.addProperty("temperature", 0);
-        payload.addProperty("max_tokens", 100);
+        payload.addProperty("max_tokens", 256);
         payload.add("messages", messages);
         return payload.toString();
     }
