@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.pokrag.serverrules.ServerRulesPlugin;
 import com.pokrag.serverrules.util.Sync;
+import com.pokrag.serverrules.util.TimeUtil;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import io.papermc.paper.event.player.AsyncChatEvent;
@@ -15,6 +16,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
@@ -85,10 +87,10 @@ public final class ChatInput implements Listener {
      * @param onCancel action executee si le joueur annule (peut etre null).
      */
     public void request(Player player, Consumer<String> onInput, Runnable onCancel) {
-        long timeout = Math.max(1, plugin.getConfig().getLong("gui.input-timeout-seconds", 60));
+        long timeout = Math.max(1, plugin.getConfig().getLong("gui.input-timeout-seconds", 600));
         pending.put(player.getUniqueId(), new Pending(onInput, onCancel, System.currentTimeMillis() + timeout * 1000L));
         player.sendMessage(plugin.getLang().prefixed(player, "gui.common.input",
-                "timeout", String.valueOf(timeout),
+                "timeout", TimeUtil.format(Duration.ofSeconds(timeout)),
                 "cancel", "/" + CANCEL_COMMAND + " cancel"));
     }
 

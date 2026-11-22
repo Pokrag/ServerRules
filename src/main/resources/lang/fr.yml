@@ -174,7 +174,7 @@ gui:
     page: "<gray>Page {page}/{pages}"
     previous: "<gray>Page précédente"
     next: "<gray>Page suivante"
-    input: "<gold>Écrivez votre réponse dans le chat. <gray>Annulez avec <click:run_command:'{cancel}'><red>[Annuler]</click> <gray>ou en tapant <white>annuler<gray>. <gray>({timeout}s)"
+    input: "<gold>Écrivez votre réponse dans le chat. <gray>Annulez avec <click:run_command:'{cancel}'><red>[Annuler]</click> <gray>ou en tapant <white>annuler<gray>. <gray>({timeout})"
     input-cancelled: "<gray>Saisie annulée."
     input-timeout: "<red>La saisie a expiré."
     title:

@@ -33,7 +33,8 @@ complaint:
 
 gui:
   # Delai (secondes) avant annulation d'une saisie de texte dans le chat
-  input-timeout-seconds: 60
+  # (nom/description d'une regle ou d'un serment). 600 s = 10 minutes.
+  input-timeout-seconds: 600
 
 oath:
   # Longueur du code d'un serment
