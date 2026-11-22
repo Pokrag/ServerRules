@@ -1,0 +1,6 @@
+# ServerRules - Türkçe (otomatik çeviri, gözden geçirilmeli)
+prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+error:
+  vault-missing: "Vault yüklü değil. ServerRules, Vault gerektirir."
+  economy-missing: "Vault'a kayıtlı bir ekonomi sağlayıcısı yok. EssentialsX'i kurun ve ekonomisini etkinleştirin."
+  economy-not-essentials: "Vault ekonomi sağlayıcısı EssentialsX değil (bulunan: {provider}). ServerRules, EssentialsX gerektirir."

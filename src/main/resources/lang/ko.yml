@@ -1,0 +1,6 @@
+# ServerRules - 한국어 (자동 번역, 검토 필요)
+prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+error:
+  vault-missing: "Vault가 설치되어 있지 않습니다. ServerRules에는 Vault가 필요합니다."
+  economy-missing: "Vault에 등록된 경제 제공자가 없습니다. EssentialsX를 설치하고 경제 기능을 활성화하세요."
+  economy-not-essentials: "Vault 경제 제공자가 EssentialsX가 아닙니다(발견: {provider}). ServerRules에는 EssentialsX가 필요합니다."

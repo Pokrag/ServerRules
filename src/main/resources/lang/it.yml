@@ -1,0 +1,6 @@
+# ServerRules - Italiano (traduzione automatica, da rivedere)
+prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+error:
+  vault-missing: "Vault non è installato. ServerRules richiede Vault."
+  economy-missing: "Nessun provider economico è registrato su Vault. Installa EssentialsX e abilita la sua economia."
+  economy-not-essentials: "Il provider economico di Vault non è EssentialsX (trovato: {provider}). ServerRules richiede EssentialsX."

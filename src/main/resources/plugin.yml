@@ -1,0 +1,9 @@
+name: ServerRules
+version: '${version}'
+main: com.pokrag.serverrules.ServerRulesPlugin
+api-version: '26.3'
+authors: [Pokrag]
+description: Informe des règles, gère les plaintes et les serments.
+depend:
+  - Vault
+  - Essentials

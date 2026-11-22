@@ -1,0 +1,6 @@
+# ServerRules - Nederlands (automatische vertaling, te controleren)
+prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+error:
+  vault-missing: "Vault is niet geïnstalleerd. ServerRules vereist Vault."
+  economy-missing: "Er is geen economieprovider geregistreerd bij Vault. Installeer EssentialsX en schakel de economie in."
+  economy-not-essentials: "De Vault-economieprovider is niet EssentialsX (gevonden: {provider}). ServerRules vereist EssentialsX."

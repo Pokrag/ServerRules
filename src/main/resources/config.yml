@@ -1,0 +1,72 @@
+# ============================================================
+#  ServerRules - configuration
+# ============================================================
+
+language:
+  # Langue par defaut (fichier lang/<code>.yml)
+  default: en
+  # Si true : chaque joueur voit les messages dans la langue de son client
+  # quand un fichier lang/<code>.yml existe, sinon dans la langue par defaut.
+  per-player: true
+
+# Delai (secondes) avant l'affichage des regles apres la premiere connexion
+rules-display-delay-seconds: 5
+
+# Noms et alias des commandes (configurables)
+commands:
+  rules:
+    name: rules
+    aliases: []
+  plaint:
+    name: plaint
+    aliases: [plainte, complaint, complaints]
+  judge:
+    name: judge
+    aliases: [juge]
+  oath:
+    name: oath
+    aliases: []
+
+complaint:
+  # Delai minimum (secondes) entre deux plaintes d'un meme joueur
+  cooldown-seconds: 60
+
+gui:
+  # Delai (secondes) avant annulation d'une saisie de texte dans le chat
+  input-timeout-seconds: 60
+
+oath:
+  # Longueur du code d'un serment
+  code-length: 4
+  # Duree de validite du code (secondes)
+  code-expiry-seconds: 60
+  # Nombre de codes errones avant blocage
+  code-max-failed-attempts: 5
+  # Duree du blocage (secondes)
+  code-lockout-seconds: 300
+  # Expiration d'une demande d'annulation (secondes)
+  cancel-request-expiry-seconds: 60
+  # Delai (jours) apres expiration pour porter plainte
+  complaint-grace-days: 2
+  # Nombre maximum de parties
+  max-players: 10
+
+# Limites de modulation des sanctions (pourcentages de la valeur de la regle)
+judge:
+  min-percent: 40
+  max-percent: 200
+superjudge:
+  min-percent: 10
+  max-percent: 500
+
+# ============================================================
+#  Regles
+# ============================================================
+rules:
+  # Delai (secondes) pour confirmer une modification de regle
+  confirm-timeout-seconds: 30
+
+  # Liste des regles. Le numero (position) est la cle : 1, 2, 3...
+  # 'id' est un identifiant interne stable : ne le modifiez pas a la main.
+  # Vide par defaut : les administrateurs ajoutent leurs regles.
+  list: {}

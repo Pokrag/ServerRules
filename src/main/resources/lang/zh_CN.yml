@@ -1,0 +1,6 @@
+# ServerRules - 简体中文（自动翻译，请校对）
+prefix: "<dark_gray>[<green>ServerRules<dark_gray>] <reset>"
+error:
+  vault-missing: "未安装 Vault。ServerRules 需要 Vault。"
+  economy-missing: "Vault 未注册任何经济提供者。请安装 EssentialsX 并启用其经济功能。"
+  economy-not-essentials: "Vault 的经济提供者不是 EssentialsX（检测到：{provider}）。ServerRules 需要 EssentialsX。"
