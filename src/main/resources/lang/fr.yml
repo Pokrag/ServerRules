@@ -5,6 +5,11 @@ error:
   vault-missing: "Vault n'est pas installé. ServerRules nécessite Vault."
   economy-missing: "Aucun fournisseur d'économie n'est enregistré auprès de Vault. Installez EssentialsX et activez son économie."
   economy-not-essentials: "Le fournisseur d'économie Vault n'est pas EssentialsX (trouvé : {provider}). ServerRules nécessite EssentialsX."
+  database: "Une erreur interne de base de données est survenue. Réessayez."
+  invalid-amount: "Le montant est invalide."
+  invalid-duration: "La durée est invalide."
+  fine-refused: "Le plugin d'économie a refusé le retrait (les soldes négatifs sont peut-être désactivés)."
+  ban-failed: "Le bannissement n'a pas pu être appliqué."
 
 rules:
   header: "<dark_gray>------- <green>Règles du serveur <dark_gray>-------"
@@ -23,3 +28,52 @@ rules:
     removed: "<red>[-] Règle {number}. {name}"
     none: "<gray>Aucun changement de règle depuis votre dernière visite."
     footer: "<gray>Tapez <white>{rules-command} <gray>pour voir toutes les règles."
+
+complaint:
+  usage: "<gray>Utilisation : <white>/plaint <joueur> <n° de règle> <détails>"
+  players-only: "<red>Seul un joueur peut déposer une plainte."
+  deposited: "<green>Votre plainte #{id} a été envoyée aux juges."
+  cooldown: "<red>Patientez {time} avant de déposer une nouvelle plainte."
+  rule-not-found: "<red>La règle {number} n'existe pas."
+  player-not-found: "<red>Le joueur {player} est inconnu."
+  self: "<red>Vous ne pouvez pas porter plainte contre vous-même."
+  list:
+    header: "<dark_gray>--- <green>Plaintes <dark_gray>---"
+    empty: "<gray>Aucune plainte à afficher."
+    row: "<yellow>#{id} <gray>{plaintiff} <dark_gray>-> <gray>{accused} <dark_gray>| {citation} <dark_gray>| <gray>{date} <dark_gray>| {status}"
+  detail:
+    header: "<dark_gray>--- <green>Plainte #{id} <dark_gray>---"
+    plaintiff: "<gray>Plaignant : <white>{plaintiff}"
+    accused: "<gray>Accusé : <white>{accused}"
+    citation: "<gray>Cité : <white>{citation}"
+    sanction: "<gray>Sanction prévue : {sanction}"
+    details: "<gray>Détails : <white>{details}"
+    date: "<gray>Date : <white>{date}"
+    status: "<gray>Statut : {status}"
+  status:
+    pending: "<yellow>en attente"
+    handled: "<green>traitée"
+    dismissed: "<gray>classée sans suite"
+
+citation:
+  rule: "<white>Règle {number} <gray>({name})"
+  oath: "<white>Serment #{id}"
+
+judge:
+  notify: "<gold>Nouvelle plainte #{id} <gray>de <white>{plaintiff} <gray>contre <white>{accused}<gray>."
+  pending-on-join: "<gold>{count} plainte(s) en attente de votre jugement."
+  not-found: "<red>La plainte #{id} n'existe pas."
+  conflict: "<red>Vous êtes impliqué dans la plainte #{id} et ne pouvez pas la traiter."
+  invalid-status: "<red>Statut inconnu. Utilisez : pending, handled, dismissed."
+  superjudge-only: "<red>Seul un superjuge peut changer la règle citée."
+  rule-changed: "<green>Plainte #{id} : règle citée changée de <white>{old} <green>à <white>{new}<green>."
+  sanction-applied: "<green>Plainte #{id} traitée : {sanction}"
+  sanction-failed: "<red>La sanction n'a pas pu être appliquée : {error}"
+  out-of-range: "<red>Valeur hors limites. Autorisé : de {min} à {max}."
+  invalid-value: "<red>Valeur invalide."
+  no-modulation: "<red>Cette citation ne peut pas être modulée."
+  custom-manual: "<red>Sanction personnalisée : elle ne peut pas être appliquée automatiquement. Utilisez /judge done une fois exécutée."
+  done-not-custom: "<red>Seule une sanction personnalisée peut être marquée comme exécutée."
+  dismissed: "<gray>Plainte #{id} classée sans suite."
+  done: "<green>Plainte #{id} marquée comme exécutée."
+  ban-reason: "Infraction aux règles du serveur - {citation} (plainte #{id})"

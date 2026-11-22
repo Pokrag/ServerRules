@@ -5,6 +5,11 @@ error:
   vault-missing: "Vault is not installed. ServerRules requires Vault."
   economy-missing: "No economy provider is registered with Vault. Install EssentialsX and enable its economy."
   economy-not-essentials: "The Vault economy provider is not EssentialsX (found: {provider}). ServerRules requires EssentialsX."
+  database: "An internal database error occurred. Please try again."
+  invalid-amount: "The amount is invalid."
+  invalid-duration: "The duration is invalid."
+  fine-refused: "The economy plugin refused the withdrawal (negative balances may be disabled)."
+  ban-failed: "The ban could not be applied."
 
 rules:
   header: "<dark_gray>------- <green>Server rules <dark_gray>-------"
@@ -23,3 +28,52 @@ rules:
     removed: "<red>[-] Rule {number}. {name}"
     none: "<gray>No rule changes since your last visit."
     footer: "<gray>Type <white>{rules-command} <gray>to see all rules."
+
+complaint:
+  usage: "<gray>Usage: <white>/plaint <player> <rule number> <details>"
+  players-only: "<red>Only a player can file a complaint."
+  deposited: "<green>Your complaint #{id} has been sent to the judges."
+  cooldown: "<red>Please wait {time} before filing another complaint."
+  rule-not-found: "<red>Rule {number} does not exist."
+  player-not-found: "<red>Player {player} is unknown."
+  self: "<red>You cannot file a complaint against yourself."
+  list:
+    header: "<dark_gray>--- <green>Complaints <dark_gray>---"
+    empty: "<gray>No complaints to display."
+    row: "<yellow>#{id} <gray>{plaintiff} <dark_gray>-> <gray>{accused} <dark_gray>| {citation} <dark_gray>| <gray>{date} <dark_gray>| {status}"
+  detail:
+    header: "<dark_gray>--- <green>Complaint #{id} <dark_gray>---"
+    plaintiff: "<gray>Plaintiff: <white>{plaintiff}"
+    accused: "<gray>Accused: <white>{accused}"
+    citation: "<gray>Cited: <white>{citation}"
+    sanction: "<gray>Planned sanction: {sanction}"
+    details: "<gray>Details: <white>{details}"
+    date: "<gray>Date: <white>{date}"
+    status: "<gray>Status: {status}"
+  status:
+    pending: "<yellow>pending"
+    handled: "<green>handled"
+    dismissed: "<gray>dismissed"
+
+citation:
+  rule: "<white>Rule {number} <gray>({name})"
+  oath: "<white>Oath #{id}"
+
+judge:
+  notify: "<gold>New complaint #{id} <gray>from <white>{plaintiff} <gray>against <white>{accused}<gray>."
+  pending-on-join: "<gold>{count} complaint(s) awaiting your judgement."
+  not-found: "<red>Complaint #{id} does not exist."
+  conflict: "<red>You are involved in complaint #{id} and cannot handle it."
+  invalid-status: "<red>Unknown status. Use: pending, handled, dismissed."
+  superjudge-only: "<red>Only a superjudge can change the cited rule."
+  rule-changed: "<green>Complaint #{id}: cited rule changed from <white>{old} <green>to <white>{new}<green>."
+  sanction-applied: "<green>Complaint #{id} handled: {sanction}"
+  sanction-failed: "<red>The sanction could not be applied: {error}"
+  out-of-range: "<red>Value out of range. Allowed: {min} to {max}."
+  invalid-value: "<red>Invalid value."
+  no-modulation: "<red>This citation cannot be modulated."
+  custom-manual: "<red>This is a custom sanction: it cannot be applied automatically. Use /judge done once executed."
+  done-not-custom: "<red>Only a custom sanction can be marked as done."
+  dismissed: "<gray>Complaint #{id} dismissed without further action."
+  done: "<green>Complaint #{id} marked as done."
+  ban-reason: "Server rules violation - {citation} (complaint #{id})"

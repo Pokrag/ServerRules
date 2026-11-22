@@ -7,3 +7,35 @@ description: Informe des règles, gère les plaintes et les serments.
 depend:
   - Vault
   - Essentials
+
+permissions:
+  serverrules.complaint:
+    description: Deposer une plainte
+    default: true
+  serverrules.oath:
+    description: Proposer et accepter des serments
+    default: true
+  serverrules.judge:
+    description: Recevoir et traiter les plaintes
+    default: op
+  serverrules.superjudge:
+    description: Pouvoirs etendus du juge (changer la regle citee, modulation 10-500 %)
+    default: op
+  serverrules.conflict.bypass:
+    description: Traiter les cas dans lesquels on est implique
+    default: op
+  serverrules.add:
+    description: Ajouter une regle
+    default: op
+  serverrules.edit:
+    description: Modifier une regle
+    default: op
+  serverrules.remove:
+    description: Supprimer une regle
+    default: op
+  serverrules.move:
+    description: Reordonner les regles
+    default: op
+  serverrules.reload:
+    description: Recharger la configuration
+    default: op

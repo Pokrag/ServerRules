@@ -1,6 +1,9 @@
 package com.pokrag.serverrules.util;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -8,6 +11,9 @@ import java.util.regex.Pattern;
 public final class TimeUtil {
 
     private static final Pattern PART = Pattern.compile("(\\d+)\\s*([wdhms])");
+
+    private static final DateTimeFormatter DATE =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
 
     private TimeUtil() {
     }
@@ -66,5 +72,10 @@ public final class TimeUtil {
         if (minutes > 0) sb.append(minutes).append("m ");
         if (secs > 0 || sb.isEmpty()) sb.append(secs).append("s");
         return sb.toString().trim();
+    }
+
+    /** Affiche une date (epoch millis) sous la forme "2026-11-22 14:30". */
+    public static String formatDate(long epochMillis) {
+        return DATE.format(Instant.ofEpochMilli(epochMillis));
     }
 }

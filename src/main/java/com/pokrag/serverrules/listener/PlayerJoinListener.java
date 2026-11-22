@@ -20,5 +20,6 @@ public final class PlayerJoinListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         plugin.getChangeTracker().onJoin(event.getPlayer());
+        plugin.getComplaintManager().notifyOnJoin(event.getPlayer());
     }
 }

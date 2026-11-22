@@ -1,10 +1,16 @@
 package com.pokrag.serverrules;
 
+import com.pokrag.serverrules.command.JudgeCommand;
+import com.pokrag.serverrules.command.PlaintCommand;
 import com.pokrag.serverrules.command.RulesCommand;
+import com.pokrag.serverrules.complaint.ComplaintManager;
+import com.pokrag.serverrules.display.ComplaintDisplay;
 import com.pokrag.serverrules.display.RulesDisplay;
 import com.pokrag.serverrules.lang.Lang;
 import com.pokrag.serverrules.listener.PlayerJoinListener;
 import com.pokrag.serverrules.rule.RulesManager;
+import com.pokrag.serverrules.sanction.BanService;
+import com.pokrag.serverrules.sanction.FineService;
 import com.pokrag.serverrules.storage.Database;
 import com.pokrag.serverrules.track.ChangeTracker;
 import net.milkbowl.vault.economy.Economy;
@@ -29,6 +35,8 @@ public final class ServerRulesPlugin extends JavaPlugin {
     private RulesDisplay display;
     private Database database;
     private ChangeTracker changeTracker;
+    private ComplaintDisplay complaintDisplay;
+    private ComplaintManager complaintManager;
 
     @Override
     public void onEnable() {
@@ -59,7 +67,15 @@ public final class ServerRulesPlugin extends JavaPlugin {
         this.changeTracker = new ChangeTracker(this, database, rulesManager, display);
         this.changeTracker.detectStartup();
 
+        FineService fines = new FineService(this);
+        BanService bans = new BanService(this);
+        this.complaintDisplay = new ComplaintDisplay(this);
+        this.complaintManager = new ComplaintManager(this, database, complaintDisplay, fines, bans);
+        fines.warnIfNegativeBalanceImpossible();
+
         new RulesCommand(this).register();
+        new PlaintCommand(this).register();
+        new JudgeCommand(this).register();
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
 
         getLogger().info("ServerRules active (Paper " + getServer().getMinecraftVersion()
@@ -125,5 +141,15 @@ public final class ServerRulesPlugin extends JavaPlugin {
     /** @return le suivi des changements de regles. */
     public ChangeTracker getChangeTracker() {
         return changeTracker;
+    }
+
+    /** @return le gestionnaire des plaintes. */
+    public ComplaintManager getComplaintManager() {
+        return complaintManager;
+    }
+
+    /** @return le rendu des messages de plaintes. */
+    public ComplaintDisplay getComplaintDisplay() {
+        return complaintDisplay;
     }
 }

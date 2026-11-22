@@ -146,6 +146,11 @@ public final class Lang {
         return MINI.deserialize(raw(viewer, key, placeholders));
     }
 
+    /** @return le texte pour un destinataire, balises MiniMessage retirees (pour les ecrans natifs). */
+    public String plain(CommandSender viewer, String key, String... placeholders) {
+        return MINI.stripTags(raw(viewer, key, placeholders));
+    }
+
     /** @return le composant precede du prefixe du plugin. */
     public Component prefixed(CommandSender viewer, String key, String... placeholders) {
         return component(viewer, "prefix").append(component(viewer, key, placeholders));
