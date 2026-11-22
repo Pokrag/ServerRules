@@ -40,6 +40,7 @@ import java.util.function.Predicate;
  *   /rules remove &lt;n&gt;                                            (serverrules.remove)
  *   /rules move &lt;n&gt; &lt;position&gt;                                   (serverrules.move)
  *   /rules reload                                               (serverrules.reload)
+ *   /rules update                                               (serverrules.update)
  *   /rules confirm / /rules cancel                              confirme ou annule la modification en attente
  */
 public final class RulesCommand {
@@ -85,6 +86,12 @@ public final class RulesCommand {
                             .requires(permission("serverrules.reload"))
                             .executes(context -> {
                                 plugin.getRulesAdminManager().reload(context.getSource().getSender());
+                                return Command.SINGLE_SUCCESS;
+                            }))
+                    .then(LiteralArgumentBuilder.<CommandSourceStack>literal("update")
+                            .requires(permission("serverrules.update"))
+                            .executes(context -> {
+                                plugin.getSelfUpdater().update(context.getSource().getSender());
                                 return Command.SINGLE_SUCCESS;
                             }))
                     .then(LiteralArgumentBuilder.<CommandSourceStack>literal("remove")

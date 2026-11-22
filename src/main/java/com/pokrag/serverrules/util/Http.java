@@ -38,6 +38,27 @@ public final class Http {
         return read(connection);
     }
 
+    /**
+     * Requete GET binaire : renvoie le corps brut (telechargement d'un fichier, ex. un JAR).
+     * Les redirections (cas des liens de release GitHub) sont suivies automatiquement.
+     */
+    public static byte[] getBytes(String url, Map<String, String> headers, int timeoutSeconds) throws IOException {
+        HttpURLConnection connection = open(url, "GET", headers, timeoutSeconds, false);
+        connection.setInstanceFollowRedirects(true);
+        connection.setRequestProperty("Accept", "application/octet-stream");
+        try {
+            int status = connection.getResponseCode();
+            if (status >= 400) {
+                throw new IOException("HTTP " + status);
+            }
+            try (InputStream in = connection.getInputStream()) {
+                return in.readAllBytes();
+            }
+        } finally {
+            connection.disconnect();
+        }
+    }
+
     private static HttpURLConnection open(String url, String method, Map<String, String> headers,
                                           int timeoutSeconds, boolean output) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();

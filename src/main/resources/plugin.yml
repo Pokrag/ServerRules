@@ -42,6 +42,9 @@ permissions:
   serverrules.reload:
     description: Recharger la configuration
     default: op
+  serverrules.update:
+    description: Installer la derniere version depuis GitHub (/rules update)
+    default: op
   serverrules.ai.notify:
     description: Etre notifie quand l'IA de sanctions (OpenRouter) n'a plus de credit
     default: op

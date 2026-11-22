@@ -1,5 +1,6 @@
 package com.pokrag.serverrules.update;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.pokrag.serverrules.ServerRulesPlugin;
@@ -8,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -19,7 +21,8 @@ import java.util.Map;
  *   version courante (schema "1.0" &lt; "1.0a" &lt; "1.0b" &lt; "1.1").
  * - Une nouvelle version est signalee en console, et aux joueurs disposant de la
  *   permission dediee ({@code serverrules.update.notify}) a leur connexion.
- * - Aucun telechargement automatique : l'administrateur met a jour le JAR lui-meme.
+ * - Aucun telechargement automatique ici : l'installation a la demande est geree
+ *   par {@link SelfUpdater} (commande {@code /rules update}).
  */
 public final class UpdateChecker {
 
@@ -27,6 +30,17 @@ public final class UpdateChecker {
     private static final String RELEASE_API = "https://api.github.com/repos/" + REPOSITORY + "/releases/latest";
     private static final String RELEASES_PAGE = "https://github.com/" + REPOSITORY + "/releases";
     private static final String NOTIFY_PERMISSION = "serverrules.update.notify";
+
+    /**
+     * Derniere release publiee sur GitHub.
+     *
+     * @param version   numero de version (tag sans le prefixe "v") ;
+     * @param pageUrl   page web de la release ;
+     * @param assetUrl  URL de telechargement du JAR, ou null si la release n'en contient pas ;
+     * @param assetName nom du fichier JAR.
+     */
+    public record Release(String version, String pageUrl, String assetUrl, String assetName) {
+    }
 
     private final ServerRulesPlugin plugin;
     private final boolean enabled;
@@ -64,33 +78,14 @@ public final class UpdateChecker {
     /** Interroge l'API GitHub et met a jour l'etat local (thread asynchrone). */
     private void check() {
         try {
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Accept", "application/vnd.github+json");
-            headers.put("User-Agent", REPOSITORY);
-
-            Http.Response response = Http.get(RELEASE_API, headers, 15);
-            if (response.status() > 299) {
-                // Aucune release publiee (404) : rien a proposer.
+            Release release = fetchLatest();
+            if (release == null || release.version().isEmpty() || !isNewer(release.version(), currentVersion)) {
                 hasUpdate = false;
                 return;
             }
 
-            JsonObject release = JsonParser.parseString(response.body()).getAsJsonObject();
-            if (!release.has("tag_name") || release.get("tag_name").isJsonNull()) {
-                hasUpdate = false;
-                return;
-            }
-
-            String tag = release.get("tag_name").getAsString().trim().toLowerCase(Locale.ROOT).replaceFirst("^v", "");
-            if (tag.isEmpty() || !isNewer(tag, currentVersion)) {
-                hasUpdate = false;
-                return;
-            }
-
-            newVersion = tag;
-            releaseUrl = release.has("html_url") && !release.get("html_url").isJsonNull()
-                    ? release.get("html_url").getAsString()
-                    : RELEASES_PAGE;
+            newVersion = release.version();
+            releaseUrl = release.pageUrl();
             hasUpdate = true;
 
             plugin.getLogger().info("Nouvelle version disponible : " + newVersion
@@ -98,6 +93,57 @@ public final class UpdateChecker {
         } catch (Exception error) {
             plugin.getLogger().warning("Recherche de mise a jour impossible : " + error.getMessage());
         }
+    }
+
+    /**
+     * Interroge l'API GitHub et renvoie la derniere release (version, page, JAR),
+     * ou null si aucune release n'est publiee.
+     *
+     * @throws IOException si la requete echoue.
+     */
+    public static Release fetchLatest() throws IOException {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Accept", "application/vnd.github+json");
+        headers.put("User-Agent", REPOSITORY);
+
+        Http.Response response = Http.get(RELEASE_API, headers, 15);
+        if (response.status() == 404 || response.body().isBlank()) {
+            return null;
+        }
+        if (response.status() > 299) {
+            throw new IOException("GitHub HTTP " + response.status());
+        }
+
+        JsonObject release = JsonParser.parseString(response.body()).getAsJsonObject();
+        if (!release.has("tag_name") || release.get("tag_name").isJsonNull()) {
+            return null;
+        }
+
+        String version = release.get("tag_name").getAsString().trim().toLowerCase(Locale.ROOT).replaceFirst("^v", "");
+        String pageUrl = release.has("html_url") && !release.get("html_url").isJsonNull()
+                ? release.get("html_url").getAsString()
+                : RELEASES_PAGE;
+        String assetUrl = null;
+        String assetName = null;
+        if (release.has("assets") && release.get("assets").isJsonArray()) {
+            for (JsonElement element : release.getAsJsonArray("assets")) {
+                JsonObject asset = element.getAsJsonObject();
+                String name = asset.has("name") ? asset.get("name").getAsString() : "";
+                if (!name.toLowerCase(Locale.ROOT).endsWith(".jar")
+                        || !asset.has("browser_download_url")) {
+                    continue;
+                }
+                assetName = name;
+                assetUrl = asset.get("browser_download_url").getAsString();
+                break;
+            }
+        }
+        return new Release(version, pageUrl, assetUrl, assetName);
+    }
+
+    /** @return la version courante du plugin (telle que declaree dans plugin.yml). */
+    public String currentVersion() {
+        return currentVersion;
     }
 
     /** A la connexion d'un joueur autorise, rappelle qu'une mise a jour est disponible. */
@@ -116,7 +162,7 @@ public final class UpdateChecker {
 
     // Compare deux versions segment par segment, en gerant un suffixe lettre :
     // "1.5.10" > "1.5.9" et "1.0b" > "1.0a" > "1.0".
-    private static boolean isNewer(String candidate, String current) {
+    public static boolean isNewer(String candidate, String current) {
         if (candidate == null || candidate.isEmpty()) {
             return false;
         }

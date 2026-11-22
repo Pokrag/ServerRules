@@ -142,7 +142,18 @@ Command names and aliases are configurable (`/rules`, `/plaint`, `/judge`,
 | `/rules gui` | Explicit alias of `/rules` |
 | `/rules manage` | Open the rules management menu (editing, `serverrules.manage`) |
 | `/rules add` `edit <n>` `remove <n>` `move <n> <position>` `reload` | Manage rules |
+| `/rules update` | Download and install the latest release from GitHub (`serverrules.update`) |
 | `/rules confirm` | Confirm a pending rule change |
+
+`/rules update` fetches the latest GitHub release, writes the new JAR next to
+the current one, **deletes the old JAR** and then:
+
+- if **PlugManX** is installed, reloads the plugin automatically
+  (`/plugman reload ServerRules`);
+- otherwise, asks you to **restart the server** to load the new version.
+
+PlugManX finds the plugin by the `name` declared in its `plugin.yml`, so the
+versioned file name (`ServerRules-<version>.jar`) works out of the box.
 
 ### Complaints (players)
 
@@ -202,6 +213,7 @@ The `<duration>` may be any duration string (`7d`, `24h`, ...) or `0` (also
 | `serverrules.remove` | op | Remove a rule |
 | `serverrules.move` | op | Reorder rules |
 | `serverrules.reload` | op | Reload configuration, languages and rules |
+| `serverrules.update` | op | Install the latest release with `/rules update` |
 
 ## Languages
 

@@ -323,4 +323,12 @@ ai:
 
 update:
   available: "<gold>A new ServerRules version is available: <white>{latest} <gray>(current: {current}) <click:open_url:'{url}'><aqua>[Download]</click>"
+  up-to-date: "<green>ServerRules is already up to date ({current})."
+  none-found: "<red>No ServerRules release was found on GitHub."
+  no-asset: "<red>Release {latest} has no downloadable JAR."
+  downloading: "<gray>Downloading ServerRules {latest}..."
+  installed-reload: "<green>ServerRules {latest} installed. Reloading with PlugManX..."
+  installed-restart: "<green>ServerRules {latest} installed. Restart the server to load it."
+  delete-failed: "<yellow>ServerRules {latest} was downloaded, but the old JAR could not be deleted. Remove it manually, then restart the server."
+  failed: "<red>The update failed: {error}"
 

@@ -19,6 +19,7 @@ import com.pokrag.serverrules.sanction.BanService;
 import com.pokrag.serverrules.sanction.FineService;
 import com.pokrag.serverrules.storage.Database;
 import com.pokrag.serverrules.track.ChangeTracker;
+import com.pokrag.serverrules.update.SelfUpdater;
 import com.pokrag.serverrules.update.UpdateChecker;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -49,6 +50,7 @@ public final class ServerRulesPlugin extends JavaPlugin {
     private ChatInput chatInput;
     private OpenRouterService openRouter;
     private UpdateChecker updateChecker;
+    private SelfUpdater selfUpdater;
 
     @Override
     public void onEnable() {
@@ -101,6 +103,7 @@ public final class ServerRulesPlugin extends JavaPlugin {
         // Recherche de mise a jour (Phase 13) : verifie les releases GitHub en arriere-plan.
         this.updateChecker = new UpdateChecker(this);
         this.updateChecker.start();
+        this.selfUpdater = new SelfUpdater(this);
 
         // Menus d'inventaire (Phase 11) : clics annules et saisie de texte dans le chat.
         this.chatInput = new ChatInput(this);
@@ -216,5 +219,15 @@ public final class ServerRulesPlugin extends JavaPlugin {
     /** @return la recherche de mise a jour GitHub (Phase 13). */
     public UpdateChecker getUpdateChecker() {
         return updateChecker;
+    }
+
+    /** @return l'installeur de mise a jour a la demande ({@code /rules update}). */
+    public SelfUpdater getSelfUpdater() {
+        return selfUpdater;
+    }
+
+    /** @return le fichier JAR de ce plugin (necessaire pour l'auto-update). */
+    public java.io.File getPluginFile() {
+        return getFile();
     }
 }
