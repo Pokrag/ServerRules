@@ -1,6 +1,7 @@
 package com.pokrag.serverrules;
 
 import com.pokrag.serverrules.command.JudgeCommand;
+import com.pokrag.serverrules.command.OathCommand;
 import com.pokrag.serverrules.command.PlaintCommand;
 import com.pokrag.serverrules.command.RulesCommand;
 import com.pokrag.serverrules.complaint.ComplaintManager;
@@ -8,6 +9,7 @@ import com.pokrag.serverrules.display.ComplaintDisplay;
 import com.pokrag.serverrules.display.RulesDisplay;
 import com.pokrag.serverrules.lang.Lang;
 import com.pokrag.serverrules.listener.PlayerJoinListener;
+import com.pokrag.serverrules.oath.OathManager;
 import com.pokrag.serverrules.rule.RulesAdminManager;
 import com.pokrag.serverrules.rule.RulesManager;
 import com.pokrag.serverrules.sanction.BanService;
@@ -39,6 +41,7 @@ public final class ServerRulesPlugin extends JavaPlugin {
     private RulesAdminManager rulesAdminManager;
     private ComplaintDisplay complaintDisplay;
     private ComplaintManager complaintManager;
+    private OathManager oathManager;
 
     @Override
     public void onEnable() {
@@ -77,9 +80,14 @@ public final class ServerRulesPlugin extends JavaPlugin {
         this.complaintManager = new ComplaintManager(this, database, complaintDisplay, fines, bans);
         fines.warnIfNegativeBalanceImpossible();
 
+        this.oathManager = new OathManager(this, database);
+        this.oathManager.load();
+        this.oathManager.startTicker();
+
         new RulesCommand(this).register();
         new PlaintCommand(this).register();
         new JudgeCommand(this).register();
+        new OathCommand(this).register();
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
 
         getLogger().info("ServerRules active (Paper " + getServer().getMinecraftVersion()
@@ -88,6 +96,9 @@ public final class ServerRulesPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (oathManager != null) {
+            oathManager.stopTicker();
+        }
         if (database != null) {
             database.close();
         }
@@ -160,5 +171,10 @@ public final class ServerRulesPlugin extends JavaPlugin {
     /** @return le rendu des messages de plaintes. */
     public ComplaintDisplay getComplaintDisplay() {
         return complaintDisplay;
+    }
+
+    /** @return le gestionnaire des serments (Phase 9). */
+    public OathManager getOathManager() {
+        return oathManager;
     }
 }

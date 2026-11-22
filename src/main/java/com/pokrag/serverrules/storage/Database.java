@@ -7,6 +7,9 @@ import com.pokrag.serverrules.complaint.CitationType;
 import com.pokrag.serverrules.complaint.Complaint;
 import com.pokrag.serverrules.complaint.ComplaintStatus;
 import com.pokrag.serverrules.complaint.SanctionKind;
+import com.pokrag.serverrules.oath.Oath;
+import com.pokrag.serverrules.oath.OathMember;
+import com.pokrag.serverrules.oath.OathStatus;
 import com.pokrag.serverrules.rule.ChangeType;
 import com.pokrag.serverrules.rule.Rule;
 import com.pokrag.serverrules.rule.RuleChange;
@@ -101,6 +104,16 @@ public final class Database {
                     + "rule_ref_id INTEGER NOT NULL, rule_number INTEGER NOT NULL, rule_name TEXT NOT NULL, "
                     + "kind TEXT NOT NULL, amount REAL NOT NULL, duration INTEGER NOT NULL, "
                     + "judge_name TEXT NOT NULL, date INTEGER NOT NULL)");
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS oaths ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "founder TEXT NOT NULL, founder_name TEXT NOT NULL, promise TEXT NOT NULL, "
+                    + "duration INTEGER NOT NULL, sanction_kind TEXT NOT NULL, amount REAL NOT NULL, "
+                    + "sanction_duration INTEGER NOT NULL, custom_text TEXT NOT NULL DEFAULT '', "
+                    + "code TEXT NOT NULL, created_at INTEGER NOT NULL, code_expires_at INTEGER NOT NULL, "
+                    + "activated_at INTEGER NOT NULL, status TEXT NOT NULL)");
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS oath_members ("
+                    + "oath_id INTEGER NOT NULL, uuid TEXT NOT NULL, name TEXT NOT NULL, "
+                    + "joined_at INTEGER NOT NULL, PRIMARY KEY (oath_id, uuid))");
         }
     }
 
@@ -416,6 +429,123 @@ public final class Database {
                 ps.executeUpdate();
             }
         });
+    }
+
+    // -------------------------------------------------------------- serments
+
+    /** Enregistre un serment et son fondateur ; renvoie l'identifiant attribue. */
+    public CompletableFuture<Long> insertOath(Oath oath, OathMember founder) {
+        return supply(() -> {
+            long id;
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO oaths(founder, founder_name, promise, duration, sanction_kind, amount, "
+                            + "sanction_duration, custom_text, code, created_at, code_expires_at, "
+                            + "activated_at, status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, oath.founder().toString());
+                ps.setString(2, oath.founderName());
+                ps.setString(3, oath.promise());
+                ps.setLong(4, oath.durationSeconds());
+                ps.setString(5, oath.sanctionKind().name());
+                ps.setDouble(6, oath.amount());
+                ps.setLong(7, oath.sanctionDurationSeconds());
+                ps.setString(8, oath.customText());
+                ps.setString(9, oath.code());
+                ps.setLong(10, oath.createdAt());
+                ps.setLong(11, oath.codeExpiresAt());
+                ps.setLong(12, oath.activatedAt());
+                ps.setString(13, oath.status().name());
+                ps.executeUpdate();
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    id = keys.next() ? keys.getLong(1) : 0L;
+                }
+            }
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO oath_members(oath_id, uuid, name, joined_at) VALUES(?,?,?,?)")) {
+                ps.setLong(1, id);
+                ps.setString(2, founder.uuid().toString());
+                ps.setString(3, founder.name());
+                ps.setLong(4, founder.joinedAt());
+                ps.executeUpdate();
+            }
+            return id;
+        });
+    }
+
+    /** Change le statut (et la date d'activation) d'un serment. */
+    public CompletableFuture<Void> updateOathStatus(long id, OathStatus status, long activatedAt) {
+        return execute(() -> {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "UPDATE oaths SET status = ?, activated_at = ? WHERE id = ?")) {
+                ps.setString(1, status.name());
+                ps.setLong(2, activatedAt);
+                ps.setLong(3, id);
+                ps.executeUpdate();
+            }
+        });
+    }
+
+    /** Ajoute une partie a un serment. */
+    public CompletableFuture<Void> addOathMember(long oathId, OathMember member) {
+        return execute(() -> {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT OR IGNORE INTO oath_members(oath_id, uuid, name, joined_at) VALUES(?,?,?,?)")) {
+                ps.setLong(1, oathId);
+                ps.setString(2, member.uuid().toString());
+                ps.setString(3, member.name());
+                ps.setLong(4, member.joinedAt());
+                ps.executeUpdate();
+            }
+        });
+    }
+
+    /** @return tous les serments, du plus ancien au plus recent. */
+    public CompletableFuture<List<Oath>> listOaths() {
+        return supply(() -> {
+            List<Oath> list = new ArrayList<>();
+            try (Statement st = connection.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT * FROM oaths ORDER BY id")) {
+                while (rs.next()) {
+                    list.add(readOath(rs));
+                }
+            }
+            return list;
+        });
+    }
+
+    /** @return les parties de tous les serments, indexees par identifiant de serment. */
+    public CompletableFuture<Map<Long, List<OathMember>>> loadOathMembers() {
+        return supply(() -> {
+            Map<Long, List<OathMember>> map = new HashMap<>();
+            try (Statement st = connection.createStatement();
+                 ResultSet rs = st.executeQuery(
+                         "SELECT oath_id, uuid, name, joined_at FROM oath_members ORDER BY oath_id, joined_at")) {
+                while (rs.next()) {
+                    map.computeIfAbsent(rs.getLong(1), key -> new ArrayList<>())
+                            .add(new OathMember(UUID.fromString(rs.getString(2)),
+                                    rs.getString(3), rs.getLong(4)));
+                }
+            }
+            return map;
+        });
+    }
+
+    private Oath readOath(ResultSet rs) throws SQLException {
+        return new Oath(
+                rs.getLong("id"),
+                UUID.fromString(rs.getString("founder")),
+                rs.getString("founder_name"),
+                rs.getString("promise"),
+                rs.getLong("duration"),
+                SanctionKind.valueOf(rs.getString("sanction_kind")),
+                rs.getDouble("amount"),
+                rs.getLong("sanction_duration"),
+                rs.getString("custom_text"),
+                rs.getString("code"),
+                rs.getLong("created_at"),
+                rs.getLong("code_expires_at"),
+                rs.getLong("activated_at"),
+                OathStatus.valueOf(rs.getString("status")));
     }
 
     private Complaint readComplaint(ResultSet rs) throws SQLException {

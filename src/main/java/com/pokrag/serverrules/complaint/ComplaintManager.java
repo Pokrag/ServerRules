@@ -84,7 +84,7 @@ public final class ComplaintManager {
     /** Notifie les juges en ligne des nouvelles plaintes (sauf conflit d'interets). */
     private void notifyJudges(Complaint complaint) {
         for (Player online : Bukkit.getOnlinePlayers()) {
-            if (!isJudge(online) || Conflicts.isInvolved(online, complaint)) {
+            if (!isJudge(online) || Conflicts.isInvolved(online, complaint, plugin)) {
                 continue;
             }
             online.sendMessage(plugin.getLang().prefixed(online, "judge.notify",
@@ -100,7 +100,7 @@ public final class ComplaintManager {
             return;
         }
         database.listComplaints(ComplaintStatus.EN_ATTENTE).thenAccept(list -> {
-            long count = list.stream().filter(c -> !Conflicts.isInvolved(player, c)).count();
+            long count = list.stream().filter(c -> !Conflicts.isInvolved(player, c, plugin)).count();
             if (count == 0) {
                 return;
             }
@@ -123,7 +123,7 @@ public final class ComplaintManager {
         database.listComplaints(status).thenAccept(all -> {
             List<Complaint> visible = new ArrayList<>();
             for (Complaint complaint : all) {
-                if (!Conflicts.isInvolved(viewer, complaint)) {
+                if (!Conflicts.isInvolved(viewer, complaint, plugin)) {
                     visible.add(complaint);
                 }
             }
@@ -149,7 +149,13 @@ public final class ComplaintManager {
     private void applyResolved(CommandSender viewer, Complaint complaint, String valueText) {
         Citation citation = complaint.citation();
         if (citation.sanctionKind() == SanctionKind.CUSTOM) {
-            viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.custom-manual"));
+            database.updateComplaintStatus(complaint.id(), ComplaintStatus.SANCTION_A_EXECUTER)
+                    .thenRun(() -> Sync.run(plugin, () -> viewer.sendMessage(plugin.getLang().prefixed(
+                            viewer, "judge.custom-to-execute", "id", String.valueOf(complaint.id())))))
+                    .exceptionally(error -> {
+                        plugin.getLogger().severe("Mise a jour de la plainte impossible : " + error.getMessage());
+                        return null;
+                    });
             return;
         }
 
@@ -225,11 +231,16 @@ public final class ComplaintManager {
 
         database.appendSanction(record)
                 .thenCompose(ignored -> database.updateComplaintStatus(complaint.id(), ComplaintStatus.TRAITEE))
-                .thenRun(() -> Sync.run(plugin, () -> viewer.sendMessage(plugin.getLang().prefixed(
-                        viewer, "judge.sanction-applied",
-                        "id", String.valueOf(complaint.id()),
-                        "sanction", displayValue(viewer, citation,
-                                citation.sanctionKind() == SanctionKind.FINE ? amount : seconds)))))
+                .thenRun(() -> Sync.run(plugin, () -> {
+                    viewer.sendMessage(plugin.getLang().prefixed(
+                            viewer, "judge.sanction-applied",
+                            "id", String.valueOf(complaint.id()),
+                            "sanction", displayValue(viewer, citation,
+                                    citation.sanctionKind() == SanctionKind.FINE ? amount : seconds)));
+                    if (citation.type() == CitationType.OATH) {
+                        plugin.getOathManager().onBreachSanctioned(citation.refId());
+                    }
+                }))
                 .exceptionally(error -> {
                     plugin.getLogger().severe("Enregistrement de la sanction impossible : " + error.getMessage());
                     return null;
@@ -240,8 +251,13 @@ public final class ComplaintManager {
     public void dismiss(CommandSender viewer, long id) {
         withComplaint(viewer, id, complaint -> database
                 .updateComplaintStatus(complaint.id(), ComplaintStatus.CLASSEE_SANS_SUITE)
-                .thenRun(() -> Sync.run(plugin, () -> viewer.sendMessage(plugin.getLang().prefixed(
-                        viewer, "judge.dismissed", "id", String.valueOf(complaint.id())))))
+                .thenRun(() -> Sync.run(plugin, () -> {
+                    viewer.sendMessage(plugin.getLang().prefixed(
+                            viewer, "judge.dismissed", "id", String.valueOf(complaint.id())));
+                    if (complaint.citation().type() == CitationType.OATH) {
+                        plugin.getOathManager().onCaseClosed(complaint.citation().refId());
+                    }
+                }))
                 .exceptionally(error -> {
                     plugin.getLogger().severe("Classement de la plainte impossible : " + error.getMessage());
                     return null;
@@ -256,8 +272,13 @@ public final class ComplaintManager {
                 return;
             }
             database.updateComplaintStatus(complaint.id(), ComplaintStatus.TRAITEE)
-                    .thenRun(() -> Sync.run(plugin, () -> viewer.sendMessage(plugin.getLang().prefixed(
-                            viewer, "judge.done", "id", String.valueOf(complaint.id())))))
+                    .thenRun(() -> Sync.run(plugin, () -> {
+                        viewer.sendMessage(plugin.getLang().prefixed(
+                                viewer, "judge.done", "id", String.valueOf(complaint.id())));
+                        if (complaint.citation().type() == CitationType.OATH) {
+                            plugin.getOathManager().onBreachSanctioned(complaint.citation().refId());
+                        }
+                    }))
                     .exceptionally(error -> {
                         plugin.getLogger().severe("Marquage de la plainte impossible : " + error.getMessage());
                         return null;
@@ -306,7 +327,7 @@ public final class ComplaintManager {
                 return;
             }
             Complaint complaint = found.get();
-            if (Conflicts.isInvolved(viewer, complaint)) {
+            if (Conflicts.isInvolved(viewer, complaint, plugin)) {
                 viewer.sendMessage(plugin.getLang().prefixed(viewer, "judge.conflict", "id", String.valueOf(id)));
                 return;
             }

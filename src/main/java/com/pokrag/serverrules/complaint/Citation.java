@@ -1,5 +1,6 @@
 package com.pokrag.serverrules.complaint;
 
+import com.pokrag.serverrules.oath.Oath;
 import com.pokrag.serverrules.rule.Rule;
 import com.pokrag.serverrules.rule.SanctionType;
 
@@ -19,5 +20,11 @@ public record Citation(CitationType type, int refId, int number, String name,
         long seconds = rule.sanction().duration() == null ? 0 : rule.sanction().duration().toSeconds();
         return new Citation(CitationType.RULE, rule.id(), number, rule.name(), kind,
                 rule.sanction().amount(), seconds, "");
+    }
+
+    /** Construit la citation d'un serment (promesse et sanction figees). */
+    public static Citation ofOath(Oath oath) {
+        return new Citation(CitationType.OATH, (int) oath.id(), 0, oath.promise(),
+                oath.sanctionKind(), oath.amount(), oath.sanctionDurationSeconds(), oath.customText());
     }
 }

@@ -5,7 +5,10 @@ public enum ComplaintStatus {
 
     EN_ATTENTE("pending"),
     TRAITEE("handled"),
-    CLASSEE_SANS_SUITE("dismissed");
+    CLASSEE_SANS_SUITE("dismissed"),
+
+    /** Sanction personnalisee d'un serment : le juge doit suivre son execution (Phase 9). */
+    SANCTION_A_EXECUTER("sanction-to-execute");
 
     private final String langKey;
 
