@@ -264,6 +264,13 @@ gui:
     ask-details: "<gold>Describe the facts in the chat."
   oath-create:
     title: "<dark_gray>Create an oath"
+    entry-duration: "<white>Duration"
+    entry-sanction: "<white>Sanction if broken"
+    entry-promise: "<white>Promise"
+    edit-save: "<green>Save"
+    sanction-title: "<dark_gray>Oath sanction"
+    sanction-required: "<red>Choose a sanction."
+    promise-required: "<red>The promise is required."
     ask-duration: "<gold>Type the oath duration in the chat (e.g. 7d, or 0 for an unlimited oath)."
     entry-fine: "<gold>Fine"
     entry-ban: "<yellow>Temporary ban"

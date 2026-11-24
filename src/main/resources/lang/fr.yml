@@ -264,6 +264,13 @@ gui:
     ask-details: "<gold>Décrivez les faits dans le chat."
   oath-create:
     title: "<dark_gray>Créer un serment"
+    entry-duration: "<white>Durée"
+    entry-sanction: "<white>Sanction en cas de manquement"
+    entry-promise: "<white>Promesse"
+    edit-save: "<green>Enregistrer"
+    sanction-title: "<dark_gray>Sanction du serment"
+    sanction-required: "<red>Choisissez une sanction."
+    promise-required: "<red>La promesse est obligatoire."
     ask-duration: "<gold>Écrivez la durée du serment dans le chat (ex. 7j, ou 0 pour un serment illimité)."
     entry-fine: "<gold>Amende"
     entry-ban: "<yellow>Bannissement temporaire"

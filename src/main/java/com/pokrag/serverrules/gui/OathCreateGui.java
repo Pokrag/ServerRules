@@ -16,13 +16,11 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Parcours de creation d'un serment (/oath create, section 11.5).
+ * Menu de creation d'un serment (/oath create, section 11.5).
  *
- * 1. saisie de la duree dans le chat ;
- * 2. menu du type de sanction : amende, ban temporaire ou personnalisee ;
- * 3. saisie de la valeur (montant, duree du ban ou texte libre) ;
- * 4. saisie de la promesse ;
- * 5. recapitulatif avec Creer et Annuler ; le code est ensuite donne dans le chat.
+ * Meme interface que l'edition d'une regle ({@link RuleEditGui}) : un seul menu
+ * avec les boutons Duree, Sanction, Promesse et Enregistrer. Toutes les saisies
+ * se font dans le chat ; l'application passe par {@link ConfirmMenu}.
  */
 public final class OathCreateGui extends GuiMenu {
 
@@ -35,30 +33,21 @@ public final class OathCreateGui extends GuiMenu {
         return text != null && INFINITE.contains(text.trim().toLowerCase(Locale.ROOT));
     }
 
-    private final long durationSeconds;
+    private final OathDraft draft;
 
-    private OathCreateGui(ServerRulesPlugin plugin, long durationSeconds) {
-        super(plugin, 27);
-        this.durationSeconds = durationSeconds;
+    private OathCreateGui(ServerRulesPlugin plugin, OathDraft draft) {
+        super(plugin, 45);
+        this.draft = draft;
     }
 
-    /** Etape 1 : demande la duree du serment, puis ouvre le choix de la sanction. */
+    /** Ouvre le menu de creation d'un serment. */
     public static void start(ServerRulesPlugin plugin, Player viewer) {
-        Lang lang = plugin.getLang();
-        viewer.sendMessage(lang.prefixed(viewer, "gui.oath-create.ask-duration"));
-        plugin.getChatInput().request(viewer, text -> {
-            if (isInfinite(text)) {
-                new OathCreateGui(plugin, 0).open(viewer);
-                return;
-            }
-            Duration duration = TimeUtil.parse(text.trim().toLowerCase(Locale.ROOT));
-            if (duration == null || duration.toSeconds() <= 0) {
-                viewer.sendMessage(lang.prefixed(viewer, "oath.create.invalid-duration"));
-                start(plugin, viewer);
-                return;
-            }
-            new OathCreateGui(plugin, duration.toSeconds()).open(viewer);
-        }, () -> OathGui.open(plugin, viewer));
+        open(plugin, viewer, new OathDraft());
+    }
+
+    /** Ouvre le menu a partir d'un brouillon existant (retour depuis le choix de la sanction). */
+    static void open(ServerRulesPlugin plugin, Player viewer, OathDraft draft) {
+        new OathCreateGui(plugin, draft).open(viewer);
     }
 
     @Override
@@ -69,120 +58,102 @@ public final class OathCreateGui extends GuiMenu {
     @Override
     protected void build(Player viewer) {
         Lang lang = plugin.getLang();
-        set(11, Menus.item(Material.GOLD_INGOT, lang.component(viewer, "gui.oath-create.entry-fine"), List.of()),
-                player -> chooseKind(player, SanctionKind.FINE));
-        set(13, Menus.item(Material.CLOCK, lang.component(viewer, "gui.oath-create.entry-ban"), List.of()),
-                player -> chooseKind(player, SanctionKind.TEMP_BAN));
-        set(15, Menus.item(Material.NAME_TAG, lang.component(viewer, "gui.oath-create.entry-custom"), List.of()),
-                player -> chooseKind(player, SanctionKind.CUSTOM));
-        set(26, Menus.item(Material.ARROW, lang.component(viewer, "gui.common.back"), List.of()),
+        set(4, summary(viewer));
+
+        set(20, Menus.item(Material.CLOCK, lang.component(viewer, "gui.oath-create.entry-duration"), List.of()),
+                player -> closeThen(player, () -> askDuration(player)));
+        set(21, Menus.item(Material.GOLD_INGOT, lang.component(viewer, "gui.oath-create.entry-sanction"), List.of()),
+                player -> closeThen(player, () -> OathSanctionGui.open(plugin, player, draft)));
+        set(22, Menus.item(Material.PAPER, lang.component(viewer, "gui.oath-create.entry-promise"), List.of()),
+                player -> closeThen(player, () -> askPromise(player)));
+        set(24, Menus.item(Material.LIME_CONCRETE, lang.component(viewer, "gui.oath-create.edit-save"), List.of()),
+                player -> closeThen(player, () -> save(player)));
+        set(40, Menus.item(Material.ARROW, lang.component(viewer, "gui.common.back"), List.of()),
                 player -> closeThen(player, () -> OathGui.open(plugin, player)));
         fillEmpty(fillerItem(viewer));
     }
 
-    /** Etape 3 : demande la valeur correspondant au type de sanction. */
-    private void chooseKind(Player viewer, SanctionKind kind) {
-        switch (kind) {
-            case FINE -> askAmount(viewer);
-            case TEMP_BAN -> askBanDuration(viewer);
-            case CUSTOM -> askCustom(viewer);
-        }
-    }
-
-    private void askAmount(Player viewer) {
+    private void askDuration(Player viewer) {
         Lang lang = plugin.getLang();
-        closeThen(viewer, () -> {
-            viewer.sendMessage(lang.prefixed(viewer, "gui.oath-create.ask-amount"));
-            plugin.getChatInput().request(viewer, text -> {
-                double amount = parseAmount(text);
-                if (amount <= 0) {
-                    viewer.sendMessage(lang.prefixed(viewer, "oath.create.invalid-value"));
-                    askAmount(viewer);
-                    return;
-                }
-                askPromise(viewer, SanctionKind.FINE, amount, 0, "");
-            }, () -> new OathCreateGui(plugin, durationSeconds).open(viewer));
-        });
+        viewer.sendMessage(lang.prefixed(viewer, "gui.oath-create.ask-duration"));
+        plugin.getChatInput().request(viewer, text -> {
+            if (isInfinite(text)) {
+                draft.durationSeconds = 0L;
+                open(plugin, viewer, draft);
+                return;
+            }
+            Duration duration = TimeUtil.parse(text.trim().toLowerCase(Locale.ROOT));
+            if (duration == null || duration.toSeconds() <= 0) {
+                viewer.sendMessage(lang.prefixed(viewer, "oath.create.invalid-duration"));
+                askDuration(viewer);
+                return;
+            }
+            draft.durationSeconds = duration.toSeconds();
+            open(plugin, viewer, draft);
+        }, () -> open(plugin, viewer, draft));
     }
 
-    private void askBanDuration(Player viewer) {
-        Lang lang = plugin.getLang();
-        closeThen(viewer, () -> {
-            viewer.sendMessage(lang.prefixed(viewer, "gui.oath-create.ask-ban"));
-            plugin.getChatInput().request(viewer, text -> {
-                Duration ban = TimeUtil.parse(text.trim());
-                if (ban == null || ban.toSeconds() <= 0) {
-                    viewer.sendMessage(lang.prefixed(viewer, "oath.create.invalid-value"));
-                    askBanDuration(viewer);
-                    return;
-                }
-                askPromise(viewer, SanctionKind.TEMP_BAN, 0, ban.toSeconds(), "");
-            }, () -> new OathCreateGui(plugin, durationSeconds).open(viewer));
-        });
-    }
-
-    private void askCustom(Player viewer) {
-        Lang lang = plugin.getLang();
-        closeThen(viewer, () -> {
-            viewer.sendMessage(lang.prefixed(viewer, "gui.oath-create.ask-custom"));
-            plugin.getChatInput().request(viewer, text -> {
-                if (text.isBlank()) {
-                    viewer.sendMessage(lang.prefixed(viewer, "oath.create.invalid-value"));
-                    askCustom(viewer);
-                    return;
-                }
-                askPromise(viewer, SanctionKind.CUSTOM, 0, 0, text.trim());
-            }, () -> new OathCreateGui(plugin, durationSeconds).open(viewer));
-        });
-    }
-
-    /** Etape 4 : demande la promesse, puis ouvre le recapitulatif. */
-    private void askPromise(Player viewer, SanctionKind kind, double amount, long banSeconds, String customText) {
+    private void askPromise(Player viewer) {
         Lang lang = plugin.getLang();
         viewer.sendMessage(lang.prefixed(viewer, "gui.oath-create.ask-promise"));
-        plugin.getChatInput().request(viewer,
-                text -> recap(viewer, kind, amount, banSeconds, customText, text.trim()),
-                () -> new OathCreateGui(plugin, durationSeconds).open(viewer));
+        plugin.getChatInput().request(viewer, text -> {
+            draft.promise = text.trim();
+            open(plugin, viewer, draft);
+        }, () -> open(plugin, viewer, draft));
     }
 
-    /** Etape 5 : recapitulatif avant creation. */
-    private void recap(Player viewer, SanctionKind kind, double amount, long banSeconds,
-                       String customText, String promise) {
-        ConfirmMenu.open(plugin, viewer, List.of(recapItem(viewer, kind, amount, banSeconds, customText, promise)),
-                player -> plugin.getOathManager().create(player, durationSeconds, kind, amount,
-                        banSeconds, customText, promise),
-                player -> new OathCreateGui(plugin, durationSeconds).open(player));
+    /** Ouvre le menu de confirmation avant de creer le serment. */
+    private void save(Player viewer) {
+        Lang lang = plugin.getLang();
+        if (draft.durationSeconds == null) {
+            viewer.sendMessage(lang.prefixed(viewer, "oath.create.invalid-duration"));
+            return;
+        }
+        if (draft.kind == null) {
+            viewer.sendMessage(lang.prefixed(viewer, "gui.oath-create.sanction-required"));
+            return;
+        }
+        if (draft.promise.isBlank()) {
+            viewer.sendMessage(lang.prefixed(viewer, "gui.oath-create.promise-required"));
+            return;
+        }
+        long duration = draft.durationSeconds;
+        SanctionKind kind = draft.kind;
+        double amount = draft.amount;
+        long banSeconds = draft.banSeconds;
+        String customText = draft.customText;
+        String promise = draft.promise;
+        ConfirmMenu.open(plugin, viewer, List.of(summary(viewer)),
+                player -> {
+                    plugin.getOathManager().create(player, duration, kind, amount, banSeconds, customText, promise);
+                    OathGui.open(plugin, player);
+                },
+                player -> open(plugin, player, draft));
     }
 
-    private ItemStack recapItem(Player viewer, SanctionKind kind, double amount, long banSeconds,
-                                String customText, String promise) {
+    /** Objet recapitulant le serment en cours de creation. */
+    private ItemStack summary(Player viewer) {
         Lang lang = plugin.getLang();
         List<Component> lore = new ArrayList<>();
         lore.add(lang.component(viewer, "gui.oath-create.recap-duration",
-                "duration", plugin.getOathManager().getDisplay().durationText(viewer, durationSeconds)));
+                "duration", draft.durationSeconds == null
+                        ? "-"
+                        : plugin.getOathManager().getDisplay().durationText(viewer, draft.durationSeconds)));
         lore.add(lang.component(viewer, "gui.oath-create.recap-sanction",
-                "sanction", sanctionText(viewer, kind, amount, banSeconds, customText)));
-        lore.add(lang.component(viewer, "gui.oath-create.recap-promise", "promise", promise));
+                "sanction", draft.kind == null ? "-" : sanctionText(viewer)));
+        lore.add(lang.component(viewer, "gui.oath-create.recap-promise",
+                "promise", draft.promise.isBlank() ? "-" : draft.promise));
         return Menus.item(Material.WRITABLE_BOOK,
                 lang.component(viewer, "gui.oath-create.recap-title"), lore);
     }
 
-    private String sanctionText(Player viewer, SanctionKind kind, double amount, long banSeconds, String customText) {
-        return switch (kind) {
+    private String sanctionText(Player viewer) {
+        return switch (draft.kind) {
             case FINE -> plugin.getLang().raw(viewer, "rules.sanction.fine",
-                    "amount", plugin.getEconomy().format(amount));
+                    "amount", plugin.getEconomy().format(draft.amount));
             case TEMP_BAN -> plugin.getLang().raw(viewer, "rules.sanction.temp-ban",
-                    "duration", TimeUtil.format(Duration.ofSeconds(banSeconds)));
-            case CUSTOM -> customText;
+                    "duration", TimeUtil.format(Duration.ofSeconds(draft.banSeconds)));
+            case CUSTOM -> draft.customText;
         };
-    }
-
-    private static double parseAmount(String text) {
-        try {
-            double value = Double.parseDouble(text.trim().replace(',', '.'));
-            return Double.isFinite(value) ? value : -1;
-        } catch (NumberFormatException e) {
-            return -1;
-        }
     }
 }
